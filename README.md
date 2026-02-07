@@ -1,7 +1,7 @@
 # EcoCode - Sustainability Software, Automated
 
 
-##What is EcoCode?
+## What is EcoCode?
 
 EcoCode is a VS Code extension that:
   - Detects inefficient code pattersn
@@ -9,15 +9,15 @@ EcoCode is a VS Code extension that:
   - Estimates CO₂ impact
   - Suggests greener alternatives
 
-#Why EcoCode?
+# Why EcoCode?
 Most developers optimize for speed, cost, and reliability.
 EcoCode adds sustainability.
 Small steps create big futures, and we believe climate-aware software will power a world that lasts.
 
 
-##Features
+## Features
 
-#Smart Code Analysis
+# Smart Code Analysis
 
 EcoCode scans your code using static analysis to detect:
   - Heavy or nested loops
@@ -25,7 +25,7 @@ EcoCode scans your code using static analysis to detect:
   - Large or uncompressed assets
   - Unnecessary repeated computations
 
-#Carbom Impact Estimation
+# Carbom Impact Estimation
 
 Using CO2.js and Green Web Foundation data, EcoCode displays
   - Carbon cost per run
@@ -33,23 +33,23 @@ Using CO2.js and Green Web Foundation data, EcoCode displays
   - TBF
 
 
-#Green Refator Suggestions
+# Green Refator Suggestions
 In addition to warning developers, EcoCode recommends better optimizations, including:
   - More efficient algorithms
   - Better caching strategies
   - Asset optimization
 
-#Tech Stack
+# Tech Stack
 Language:
 Analysis:
 Carbon Data: CO2.js (Green Web Foundation)
 Platform: VS Code Extension
 Runtime:
 
-#Installation
+# Installation
 TBF
 
-#How it works
+# How it works
 TBF
 
 
