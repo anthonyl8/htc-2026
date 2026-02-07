@@ -9,7 +9,7 @@ EcoCode is a VS Code extension that:
   - Estimates CO₂ impact
   - Suggests greener alternatives
 
-# Why EcoCode?
+## Why EcoCode?
 Most developers optimize for speed, cost, and reliability.
 EcoCode adds sustainability.
 Small steps create big futures, and we believe climate-aware software will power a world that lasts.
