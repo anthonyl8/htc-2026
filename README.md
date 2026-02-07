@@ -1,55 +1,43 @@
-# EcoCode - Sustainability Software, Automated
+# ReLeaf - Heat Island Mitigation Planner
 
 
-## What is EcoCode?
+## What is ReLeaf?
 
-EcoCode is a VS Code extension that:
-  - Detects inefficient code pattersn
-  - Flags unnecessary computation
-  - Estimates CO₂ impact
-  - Suggests greener alternatives
+ReLeaf is a smart urban planning tool designed to help cities and communities combat the Urban Heat Island (UHI) effect. It analyzes environmental data to identify heat-prone areas and recommends nature-based solutions such as tree planting, green roofs, and shaded walkways.
 
-## Why EcoCode?
-Most developers optimize for speed, cost, and reliability.
-EcoCode adds sustainability.
-Small steps create big futures, and we believe climate-aware software will power a world that lasts.
+By combining data analytics, climate science, and sustainability principles, ReLeaf empowers decision-makers to build cooler, healthier, and more resilient cities.
+
+## Why ReLeaf?
+
+Small steps create big futures, and we believe ReLeaf will create a lasting positive impact on urban environments.
+With rising global temperatures and rapid urbanization, cities are becoming increasingly vulnerable to extreme heat. ReLeaf addresses this challenge by:
+
+  - Reducing health risks caused by heat waves
+  - Lowering energy consumption for cooling
+  - Improving air quality
+  - Promoting green infrastructure
+  - Supporting climate-resilient development
+
+ReLeaf helps transform climate data into actionable solutions
 
 
 ## Features
 
-# Smart Code Analysis
-
-EcoCode scans your code using static analysis to detect:
-  - Heavy or nested loops
-  - Redundant API calls
-  - Large or uncompressed assets
-  - Unnecessary repeated computations
-
-# Carbom Impact Estimation
-
-Using CO2.js and Green Web Foundation data, EcoCode displays
-  - Carbon cost per run
-  - Real-Equivalents to make impact understandable
-  - TBF
+### TBF
 
 
-# Green Refator Suggestions
-In addition to warning developers, EcoCode recommends better optimizations, including:
-  - More efficient algorithms
-  - Better caching strategies
-  - Asset optimization
 
-# Tech Stack
+### Tech Stack
 Language:
 Analysis:
-Carbon Data: CO2.js (Green Web Foundation)
-Platform: VS Code Extension
+Carbon Data: 
+Platform: 
 Runtime:
 
-# Installation
+### Installation
 TBF
 
-# How it works
+### How it works
 TBF
 
 
