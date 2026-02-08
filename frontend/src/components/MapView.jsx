@@ -9,16 +9,36 @@ import {
 } from "react";
 import { Map, useMap } from "@vis.gl/react-google-maps";
 import { GoogleMapsOverlay } from "@deck.gl/google-maps";
-import { ScatterplotLayer, TextLayer, ColumnLayer } from "@deck.gl/layers";
+import {
+  ScatterplotLayer,
+  TextLayer,
+  ColumnLayer,
+  PolygonLayer,
+} from "@deck.gl/layers";
+import { LightingEffect, AmbientLight, _SunLight as SunLight } from "@deck.gl/core";
 import { getTemperature } from "../services/api";
 import { useHeatmapLayer } from "./HeatmapOverlay";
 import { useTreeLayers } from "./TreeLayer";
 
 const GOOGLE_MAPS_MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || "";
 
-// ─── Deck.gl overlay rendered inside Google Maps ───────────
+// ─── Species color mapping ──────────────────────────────────
 
-function DeckGLOverlay({ layers }) {
+const SPECIES_COLORS = {
+  oak: [34, 120, 34, 200],
+  maple: [60, 160, 40, 200],
+  pine: [20, 100, 50, 200],
+};
+
+const SPECIES_RADIUS = {
+  oak: 12,
+  maple: 8,
+  pine: 5,
+};
+
+// ─── Deck.gl overlay with lighting effects ──────────────────
+
+function DeckGLOverlay({ layers, effects }) {
   const map = useMap();
   const overlay = useRef(null);
 
@@ -35,9 +55,13 @@ function DeckGLOverlay({ layers }) {
 
   useEffect(() => {
     if (overlay.current) {
-      overlay.current.setProps({ layers });
+      const props = { layers };
+      if (effects && effects.length > 0) {
+        props.effects = effects;
+      }
+      overlay.current.setProps(props);
     }
-  }, [layers]);
+  }, [layers, effects]);
 
   return null;
 }
@@ -58,7 +82,13 @@ const MapView = forwardRef(function MapView(
   {
     mode,
     trees,
+    interventions,
+    coolRoofs,
+    bioSwales,
+    selectedSpecies,
     onTreePlant,
+    onCoolRoofPlace,
+    onBioSwalePlace,
     onMapClick,
     heatmapVisible,
     onTemperatureUpdate,
@@ -68,10 +98,12 @@ const MapView = forwardRef(function MapView(
     suggestionsVisible,
     vulnerabilityData,
     vulnerabilityVisible,
+    timeOfDay,
   },
   ref
 ) {
   const [mapInstance, setMapInstance] = useState(null);
+  const [tooltip, setTooltip] = useState(null);
 
   // Expose flyTo + getViewport to parent
   useImperativeHandle(ref, () => ({
@@ -93,16 +125,171 @@ const MapView = forwardRef(function MapView(
     },
   }));
 
+  // ─── Sun Lighting Effect ──────────────────────────────────
+
+  const lightingEffects = useMemo(() => {
+    if (timeOfDay == null) return [];
+
+    const date = new Date();
+    date.setHours(Math.floor(timeOfDay), (timeOfDay % 1) * 60, 0, 0);
+
+    // Intensity varies by time of day
+    const noon = 13;
+    const dist = Math.abs(timeOfDay - noon) / 7;
+    const sunIntensity = Math.max(0.3, 1.0 - dist * 0.7);
+
+    try {
+      const sunLight = new SunLight({
+        timestamp: date.getTime(),
+        color: [255, 255, 255],
+        intensity: sunIntensity,
+      });
+      const ambientLight = new AmbientLight({
+        color: [255, 255, 255],
+        intensity: 0.4,
+      });
+      return [new LightingEffect({ ambientLight, sunLight })];
+    } catch (err) {
+      console.warn("SunLight not available:", err);
+      return [];
+    }
+  }, [timeOfDay]);
+
   // ─── Deck.gl layers ────────────────────────────────────────
 
   const heatmapLayer = useHeatmapLayer(heatmapVisible);
-  const treeLayers = useTreeLayers(trees);
+
+  // Enhanced tree layers with species colors
+  const enhancedTreeLayers = useMemo(() => {
+    if (!trees || trees.length === 0) return [];
+
+    return [
+      // Tree trunks
+      new ColumnLayer({
+        id: "tree-trunk-layer",
+        data: trees,
+        getPosition: (d) => [d.position[0], d.position[1]],
+        getElevation: (d) => {
+          const sp = d.species || "maple";
+          return sp === "oak" ? 25 : sp === "pine" ? 30 : 20;
+        },
+        diskResolution: 8,
+        radius: 1.5,
+        getFillColor: (d) =>
+          d.species === "pine" ? [80, 60, 30] : [101, 67, 33],
+        elevationScale: 1,
+        pickable: false,
+      }),
+      // Tree canopies — colored by species
+      new ScatterplotLayer({
+        id: "tree-canopy-layer",
+        data: trees,
+        getPosition: (d) => [d.position[0], d.position[1]],
+        getRadius: (d) => SPECIES_RADIUS[d.species] || 8,
+        getFillColor: (d) => SPECIES_COLORS[d.species] || [34, 139, 34, 200],
+        getLineColor: [0, 80, 0],
+        lineWidthMinPixels: 2,
+        stroked: true,
+        filled: true,
+        radiusScale: 1,
+        radiusMinPixels: 6,
+        radiusMaxPixels: 30,
+        pickable: true,
+        onHover: (info) => {
+          if (info.object) {
+            const sp = info.object.species || "maple";
+            setTooltip({
+              x: info.x,
+              y: info.y,
+              text: `🌳 ${sp.charAt(0).toUpperCase() + sp.slice(1)} Tree`,
+            });
+          } else {
+            setTooltip(null);
+          }
+        },
+      }),
+    ];
+  }, [trees]);
+
+  // Cool Roof layers
+  const coolRoofLayers = useMemo(() => {
+    if (!coolRoofs || coolRoofs.length === 0) return [];
+    return [
+      new ScatterplotLayer({
+        id: "cool-roof-glow",
+        data: coolRoofs,
+        getPosition: (d) => [d.position[0], d.position[1]],
+        getRadius: 20,
+        getFillColor: [200, 220, 255, 60],
+        getLineColor: [150, 190, 255, 200],
+        lineWidthMinPixels: 2,
+        stroked: true,
+        filled: true,
+        radiusMinPixels: 12,
+        radiusMaxPixels: 35,
+        pickable: true,
+        onHover: (info) => {
+          if (info.object) {
+            setTooltip({ x: info.x, y: info.y, text: "🏠 Cool Roof — reflective coating" });
+          } else {
+            setTooltip(null);
+          }
+        },
+      }),
+      new TextLayer({
+        id: "cool-roof-labels",
+        data: coolRoofs,
+        getPosition: (d) => [d.position[0], d.position[1]],
+        getText: () => "🏠",
+        getSize: 18,
+        getTextAnchor: "middle",
+        getAlignmentBaseline: "center",
+        billboard: true,
+      }),
+    ];
+  }, [coolRoofs]);
+
+  // Bio-Swale layers
+  const bioSwaleLayers = useMemo(() => {
+    if (!bioSwales || bioSwales.length === 0) return [];
+    return [
+      new ScatterplotLayer({
+        id: "bio-swale-glow",
+        data: bioSwales,
+        getPosition: (d) => [d.position[0], d.position[1]],
+        getRadius: 15,
+        getFillColor: [60, 140, 200, 70],
+        getLineColor: [56, 189, 248, 200],
+        lineWidthMinPixels: 2,
+        stroked: true,
+        filled: true,
+        radiusMinPixels: 10,
+        radiusMaxPixels: 28,
+        pickable: true,
+        onHover: (info) => {
+          if (info.object) {
+            setTooltip({ x: info.x, y: info.y, text: "💧 Bio-Swale — rain garden" });
+          } else {
+            setTooltip(null);
+          }
+        },
+      }),
+      new TextLayer({
+        id: "bio-swale-labels",
+        data: bioSwales,
+        getPosition: (d) => [d.position[0], d.position[1]],
+        getText: () => "💧",
+        getSize: 16,
+        getTextAnchor: "middle",
+        getAlignmentBaseline: "center",
+        billboard: true,
+      }),
+    ];
+  }, [bioSwales]);
 
   // Hotspot layers (Red Zones)
   const hotspotLayers = useMemo(() => {
-    console.log("[MapView] Hotspot layers:", { hotspotsVisible, hotspots: hotspots?.length });
     if (!hotspotsVisible || !hotspots?.length) return [];
-    console.log("[MapView] Rendering", hotspots.length, "hotspot markers");
     return [
       new ScatterplotLayer({
         id: "hotspot-glow",
@@ -119,6 +306,18 @@ const MapView = forwardRef(function MapView(
         radiusMinPixels: 14,
         radiusMaxPixels: 50,
         pickable: true,
+        onHover: (info) => {
+          if (info.object) {
+            const d = info.object;
+            setTooltip({
+              x: info.x,
+              y: info.y,
+              text: `⚠️ ${d.temperature_c}°C | ${d.severity?.toUpperCase()} | ${d.description}`,
+            });
+          } else {
+            setTooltip(null);
+          }
+        },
       }),
       new ScatterplotLayer({
         id: "hotspot-core",
@@ -154,9 +353,7 @@ const MapView = forwardRef(function MapView(
 
   // Suggestion layers
   const suggestionLayers = useMemo(() => {
-    console.log("[MapView] Suggestion layers:", { suggestionsVisible, suggestions: suggestions?.length });
     if (!suggestionsVisible || !suggestions?.length) return [];
-    console.log("[MapView] Rendering", suggestions.length, "suggestion markers");
     return [
       new ScatterplotLayer({
         id: "suggestion-ring",
@@ -171,6 +368,18 @@ const MapView = forwardRef(function MapView(
         radiusMinPixels: 10,
         radiusMaxPixels: 28,
         pickable: true,
+        onHover: (info) => {
+          if (info.object) {
+            const d = info.object;
+            setTooltip({
+              x: info.x,
+              y: info.y,
+              text: `💡 −${d.cooling_potential}°C | ${d.reason}`,
+            });
+          } else {
+            setTooltip(null);
+          }
+        },
       }),
       new TextLayer({
         id: "suggestion-labels",
@@ -191,11 +400,9 @@ const MapView = forwardRef(function MapView(
     ];
   }, [suggestionsVisible, suggestions]);
 
-  // Vulnerability overlay
+  // Vulnerability overlay with enhanced tooltips
   const vulnerabilityLayers = useMemo(() => {
-    console.log("[MapView] Vulnerability layers:", { vulnerabilityVisible, vulnerabilityData: vulnerabilityData?.length });
     if (!vulnerabilityVisible || !vulnerabilityData?.length) return [];
-    console.log("[MapView] Rendering", vulnerabilityData.length, "vulnerability markers");
     return [
       new ScatterplotLayer({
         id: "vulnerability",
@@ -219,6 +426,24 @@ const MapView = forwardRef(function MapView(
         },
         lineWidthMinPixels: 1,
         pickable: true,
+        onHover: (info) => {
+          if (info.object) {
+            const d = info.object;
+            const level =
+              d.vulnerability_score >= 0.7
+                ? "CRITICAL"
+                : d.vulnerability_score >= 0.4
+                ? "HIGH"
+                : "MODERATE";
+            setTooltip({
+              x: info.x,
+              y: info.y,
+              text: `🛡️ ${d.label} | Risk: ${level} | Pop: ${d.population?.toLocaleString()} | ${d.factors}`,
+            });
+          } else {
+            setTooltip(null);
+          }
+        },
       }),
       new TextLayer({
         id: "vulnerability-labels",
@@ -240,14 +465,24 @@ const MapView = forwardRef(function MapView(
   // Combine all layers
   const allLayers = useMemo(() => {
     const layers = [
-      ...treeLayers,
+      ...enhancedTreeLayers,
+      ...coolRoofLayers,
+      ...bioSwaleLayers,
       ...hotspotLayers,
       ...suggestionLayers,
       ...vulnerabilityLayers,
     ];
     if (heatmapLayer) layers.push(heatmapLayer);
     return layers;
-  }, [treeLayers, hotspotLayers, suggestionLayers, vulnerabilityLayers, heatmapLayer]);
+  }, [
+    enhancedTreeLayers,
+    coolRoofLayers,
+    bioSwaleLayers,
+    hotspotLayers,
+    suggestionLayers,
+    vulnerabilityLayers,
+    heatmapLayer,
+  ]);
 
   // ─── Map click handler ─────────────────────────────────────
 
@@ -257,8 +492,12 @@ const MapView = forwardRef(function MapView(
       const lat = e.detail.latLng.lat;
       const lng = e.detail.latLng.lng;
 
-      if (mode === "plant") {
+      if (mode === "tree") {
         onTreePlant([lng, lat, 0]);
+      } else if (mode === "cool_roof") {
+        onCoolRoofPlace?.([lng, lat, 0]);
+      } else if (mode === "bio_swale") {
+        onBioSwalePlace?.([lng, lat, 0]);
       } else if (mode === "streetview") {
         onMapClick?.({ lat, lng });
       }
@@ -272,7 +511,7 @@ const MapView = forwardRef(function MapView(
         console.warn("Temperature fetch failed:", err);
       }
     },
-    [mode, onTreePlant, onMapClick, onTemperatureUpdate]
+    [mode, onTreePlant, onCoolRoofPlace, onBioSwalePlace, onMapClick, onTemperatureUpdate]
   );
 
   // ─── Render ────────────────────────────────────────────────
@@ -285,14 +524,27 @@ const MapView = forwardRef(function MapView(
     mapTypeControl: false,
     streetViewControl: false,
     fullscreenControl: false,
+    clickableIcons: false,
+    styles: [
+      { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] },
+      { featureType: "transit", elementType: "labels", stylers: [{ visibility: "off" }] },
+      { featureType: "transit.station", elementType: "all", stylers: [{ visibility: "off" }] },
+      { featureType: "road", elementType: "labels", stylers: [{ visibility: "simplified" }] },
+      { featureType: "poi.business", stylers: [{ visibility: "off" }] },
+      { featureType: "poi.park", elementType: "labels", stylers: [{ visibility: "off" }] },
+      { featureType: "poi.medical", stylers: [{ visibility: "off" }] },
+      { featureType: "poi.school", stylers: [{ visibility: "off" }] },
+      { featureType: "poi.government", stylers: [{ visibility: "off" }] },
+    ],
   };
 
-  // If a Map ID is set, enable 3D tilt; otherwise flat satellite
   if (GOOGLE_MAPS_MAP_ID) {
     mapOptions.mapId = GOOGLE_MAPS_MAP_ID;
     mapOptions.tilt = 45;
     mapOptions.heading = 0;
   }
+
+  const isIntervention = mode === "tree" || mode === "cool_roof" || mode === "bio_swale";
 
   return (
     <div id="map-container" style={styles.container}>
@@ -305,23 +557,41 @@ const MapView = forwardRef(function MapView(
         reuseMaps={true}
       >
         <MapInstanceCapture onMapReady={setMapInstance} />
-        <DeckGLOverlay layers={allLayers} />
+        <DeckGLOverlay layers={allLayers} effects={lightingEffects} />
       </Map>
 
-      {/* Mode indicator */}
-      {mode === "plant" && (
+      {/* Mode indicators */}
+      {mode === "tree" && (
         <div style={styles.modeIndicator}>
-          Click anywhere to plant a tree
+          🌳 Click anywhere to plant a tree
+        </div>
+      )}
+      {mode === "cool_roof" && (
+        <div style={{ ...styles.modeIndicator, background: "rgba(150,190,255,0.9)" }}>
+          🏠 Click a building to apply Cool Roof
+        </div>
+      )}
+      {mode === "bio_swale" && (
+        <div style={{ ...styles.modeIndicator, background: "rgba(56,189,248,0.9)" }}>
+          💧 Click to place a Bio-Swale
         </div>
       )}
       {mode === "streetview" && (
+        <div style={{ ...styles.modeIndicator, background: "rgba(251,191,36,0.9)" }}>
+          📍 Click a location to open Street View
+        </div>
+      )}
+
+      {/* Tooltip */}
+      {tooltip && (
         <div
           style={{
-            ...styles.modeIndicator,
-            background: "rgba(251,191,36,0.9)",
+            ...styles.tooltip,
+            left: tooltip.x + 12,
+            top: tooltip.y - 8,
           }}
         >
-          📍 Click a location to open Street View
+          {tooltip.text}
         </div>
       )}
     </div>
@@ -342,14 +612,33 @@ const styles = {
     bottom: "80px",
     left: "50%",
     transform: "translateX(-50%)",
-    background: "rgba(74,222,128,0.9)",
+    background: "linear-gradient(135deg, #4ade80 0%, #22c55e 100%)",
     color: "#000",
     padding: "8px 20px",
     borderRadius: "20px",
     fontSize: "0.82rem",
-    fontWeight: 600,
+    fontWeight: 700,
     pointerEvents: "none",
     zIndex: 50,
-    boxShadow: "0 2px 12px rgba(0,0,0,0.3)",
+    boxShadow: "0 4px 16px rgba(74,222,128,0.4), 0 0 20px rgba(74,222,128,0.2)",
+    border: "1px solid rgba(255,255,255,0.3)",
+  },
+  tooltip: {
+    position: "absolute",
+    background: "linear-gradient(135deg, rgba(20,35,30,0.98) 0%, rgba(26,40,35,0.98) 100%)",
+    color: "#e5e5e5",
+    padding: "8px 14px",
+    borderRadius: "8px",
+    fontSize: "0.75rem",
+    fontWeight: 500,
+    maxWidth: "350px",
+    pointerEvents: "none",
+    zIndex: 200,
+    border: "1px solid rgba(74,222,128,0.3)",
+    boxShadow: "0 4px 16px rgba(74,222,128,0.2)",
+    lineHeight: 1.4,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   },
 };

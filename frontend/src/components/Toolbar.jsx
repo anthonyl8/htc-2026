@@ -1,17 +1,29 @@
+import SpeciesSelector from "./SpeciesSelector";
+
 /**
  * Left-side floating toolbar.
- * Mode switching, layer toggles (radio button style), tree actions, simulation toggle.
+ * Mode switching, intervention toolbox, species selector, layer toggles,
+ * tree actions, dashboard toggles.
  */
 export default function Toolbar({
   mode,
   onModeChange,
   treeCount,
+  interventionCount,
   onUndo,
   onClear,
   onSimulationToggle,
   simulationOpen,
+  onROIToggle,
+  roiOpen,
+  onVisionToggle,
+  onReportDownload,
   activeDataLayer,
   onDataLayerChange,
+  selectedSpecies,
+  onSpeciesChange,
+  timeSliderVisible,
+  onTimeSliderToggle,
 }) {
   // Radio button behavior: toggle off if clicking active layer
   const handleLayerClick = (layerId) => {
@@ -21,6 +33,8 @@ export default function Toolbar({
       onDataLayerChange(layerId);
     }
   };
+
+  const isIntervention = mode === "tree" || mode === "cool_roof" || mode === "bio_swale";
 
   return (
     <div style={styles.container}>
@@ -43,13 +57,6 @@ export default function Toolbar({
           label="Explore"
         />
         <ModeBtn
-          active={mode === "plant"}
-          onClick={() => onModeChange("plant")}
-          icon="🌳"
-          label="Plant Trees"
-          activeColor="#4ade80"
-        />
-        <ModeBtn
           active={mode === "streetview"}
           onClick={() => onModeChange("streetview")}
           icon="📍"
@@ -57,6 +64,58 @@ export default function Toolbar({
           activeColor="#fbbf24"
         />
       </Section>
+
+      {/* Intervention Toolbox */}
+      <Section>
+        <SectionLabel>INTERVENTIONS</SectionLabel>
+        <ModeBtn
+          active={mode === "tree"}
+          onClick={() => onModeChange("tree")}
+          icon="🌳"
+          label="Plant Tree"
+          activeColor="#4ade80"
+        />
+        <ModeBtn
+          active={mode === "cool_roof"}
+          onClick={() => onModeChange("cool_roof")}
+          icon="🏠"
+          label="Cool Roof"
+          activeColor="#93c5fd"
+        />
+        <ModeBtn
+          active={mode === "bio_swale"}
+          onClick={() => onModeChange("bio_swale")}
+          icon="💧"
+          label="Bio-Swale"
+          activeColor="#38bdf8"
+        />
+      </Section>
+
+      {/* Species selector — only when planting trees */}
+      {mode === "tree" && (
+        <SpeciesSelector
+          selectedSpecies={selectedSpecies}
+          onSpeciesChange={onSpeciesChange}
+        />
+      )}
+
+      {/* Interventions count + undo/clear */}
+      {interventionCount > 0 && (
+        <Section>
+          <div style={styles.treeRow}>
+            <span style={{ fontSize: "0.85rem" }}>🌳</span>
+            <span style={styles.treeCount}>{interventionCount}</span>
+            <span style={styles.treeLabel}>placed</span>
+            <div style={{ flex: 1 }} />
+            <button onClick={onUndo} style={styles.iconBtn} title="Undo">
+              ↩
+            </button>
+            <button onClick={onClear} style={styles.iconBtn} title="Clear">
+              ✕
+            </button>
+          </div>
+        </Section>
+      )}
 
       {/* Data Layers (Radio Button Style) */}
       <Section>
@@ -87,34 +146,38 @@ export default function Toolbar({
         />
       </Section>
 
-      {/* Trees */}
-      {treeCount > 0 && (
-        <Section>
-          <div style={styles.treeRow}>
-            <span style={{ fontSize: "1rem" }}>🌳</span>
-            <span style={styles.treeCount}>{treeCount}</span>
-            <span style={styles.treeLabel}>planted</span>
-            <div style={{ flex: 1 }} />
-            <button onClick={onUndo} style={styles.iconBtn} title="Undo">
-              ↩
-            </button>
-            <button onClick={onClear} style={styles.iconBtn} title="Clear">
-              ✕
-            </button>
-          </div>
-        </Section>
-      )}
-
-      {/* Simulation */}
-      <button
-        onClick={onSimulationToggle}
-        style={{
-          ...styles.actionBtn,
-          ...(simulationOpen ? styles.actionBtnActive : {}),
-        }}
-      >
-        📊 Simulation
-      </button>
+      {/* Dashboard & Tools */}
+      <Section>
+        <SectionLabel>TOOLS</SectionLabel>
+        <ActionBtn
+          active={simulationOpen}
+          onClick={onSimulationToggle}
+          icon="📊"
+          label="Simulation"
+        />
+        <ActionBtn
+          active={roiOpen}
+          onClick={onROIToggle}
+          icon="💰"
+          label="ROI Dashboard"
+        />
+        <ActionBtn
+          active={timeSliderVisible}
+          onClick={onTimeSliderToggle}
+          icon="☀️"
+          label="Sun Path"
+        />
+        <ActionBtn
+          onClick={onVisionToggle}
+          icon="📸"
+          label="Future Vision"
+        />
+        <ActionBtn
+          onClick={onReportDownload}
+          icon="📄"
+          label="Download Report"
+        />
+      </Section>
     </div>
   );
 }
@@ -177,6 +240,25 @@ function RadioLayerToggle({ active, onClick, color, label }) {
   );
 }
 
+function ActionBtn({ active, onClick, icon, label }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        ...styles.actionItemBtn,
+        ...(active
+          ? {
+              background: "rgba(59,130,246,0.12)",
+              color: "#60a5fa",
+            }
+          : {}),
+      }}
+    >
+      {icon} {label}
+    </button>
+  );
+}
+
 // ─── Styles ──────────────────────────────────────────────────
 
 const styles = {
@@ -189,16 +271,21 @@ const styles = {
     gap: "6px",
     zIndex: 100,
     width: "190px",
+    maxHeight: "calc(100vh - 32px)",
+    overflowY: "auto",
+    overflowX: "hidden",
+    scrollbarWidth: "none",
   },
   brand: {
     display: "flex",
     alignItems: "center",
     gap: "10px",
-    background: "rgba(26,26,46,0.94)",
+    background: "linear-gradient(135deg, rgba(20,35,30,0.95) 0%, rgba(26,40,35,0.95) 100%)",
     padding: "12px 14px",
     borderRadius: "12px",
-    border: "1px solid rgba(255,255,255,0.08)",
+    border: "1px solid rgba(74,222,128,0.2)",
     backdropFilter: "blur(16px)",
+    boxShadow: "0 2px 12px rgba(74,222,128,0.08)",
   },
   logo: { fontSize: "1.5rem" },
   brandName: {
@@ -219,18 +306,19 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: "1px",
-    background: "rgba(26,26,46,0.94)",
+    background: "linear-gradient(135deg, rgba(20,35,30,0.92) 0%, rgba(26,40,35,0.92) 100%)",
     padding: "8px 6px",
     borderRadius: "12px",
-    border: "1px solid rgba(255,255,255,0.08)",
+    border: "1px solid rgba(74,222,128,0.15)",
     backdropFilter: "blur(16px)",
   },
   sectionLabel: {
-    color: "#555",
+    color: "#4ade80",
     fontSize: "0.58rem",
     fontWeight: 700,
     letterSpacing: "1.2px",
     padding: "0 8px 4px",
+    opacity: 0.7,
   },
   modeBtn: {
     display: "flex",
@@ -303,23 +391,20 @@ const styles = {
     cursor: "pointer",
     outline: "none",
   },
-  actionBtn: {
-    padding: "10px 14px",
-    background: "rgba(26,26,46,0.94)",
-    color: "#bbb",
-    border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "12px",
-    fontSize: "0.8rem",
+  actionItemBtn: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "6px 10px",
+    background: "transparent",
+    color: "#888",
+    border: "none",
+    borderRadius: "7px",
+    fontSize: "0.76rem",
     fontWeight: 600,
     cursor: "pointer",
-    backdropFilter: "blur(16px)",
     textAlign: "left",
     transition: "all 0.15s",
     outline: "none",
-  },
-  actionBtnActive: {
-    background: "rgba(59,130,246,0.12)",
-    color: "#60a5fa",
-    borderColor: "rgba(59,130,246,0.25)",
   },
 };

@@ -9,6 +9,7 @@ from core.config import settings
 from controllers.heatmap import router as heatmap_router
 from controllers.vision import router as vision_router
 from controllers.analysis import router as analysis_router
+from controllers.validation import router as validation_router
 from services.satellite import satellite_service
 
 app = FastAPI(
@@ -30,6 +31,7 @@ app.add_middleware(
 app.include_router(heatmap_router, prefix="/api")
 app.include_router(vision_router, prefix="/api")
 app.include_router(analysis_router, prefix="/api")
+app.include_router(validation_router, prefix="/api")
 
 
 @app.on_event("startup")

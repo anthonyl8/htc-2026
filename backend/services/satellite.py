@@ -79,15 +79,35 @@ class SatelliteService:
             if 0 <= row < self.data.shape[0] and 0 <= col < self.data.shape[1]:
                 raw_value = float(self.data[row, col])
 
+                # Check for NaN or invalid values
+                if np.isnan(raw_value) or not np.isfinite(raw_value):
+                    return {
+                        "lat": lat,
+                        "lon": lon,
+                        "temperature_c": None,
+                        "error": "No data at this pixel (NaN)",
+                        "source": "sentinel-2",
+                    }
+
                 # Convert raw value to Celsius if needed (depends on data source)
                 # Sentinel-2 thermal data is often in Kelvin * 100 or direct Celsius
                 temperature_c = self._convert_to_celsius(raw_value)
+                
+                # Additional validation
+                if np.isnan(temperature_c) or not np.isfinite(temperature_c):
+                    return {
+                        "lat": lat,
+                        "lon": lon,
+                        "temperature_c": None,
+                        "error": "Invalid temperature value",
+                        "source": "sentinel-2",
+                    }
 
                 return {
                     "lat": lat,
                     "lon": lon,
-                    "temperature_c": round(temperature_c, 1),
-                    "raw_value": raw_value,
+                    "temperature_c": round(float(temperature_c), 1),
+                    "raw_value": float(raw_value),
                     "source": "sentinel-2",
                 }
             else:
@@ -153,14 +173,16 @@ class SatelliteService:
                 lat = bounds["south"] + i * lat_step
                 lon = bounds["west"] + j * lon_step
                 result = self.get_temperature_at(lat, lon)
-                if result.get("temperature_c") is not None:
-                    temp = result["temperature_c"]
+                temp = result.get("temperature_c")
+                
+                # Filter out None, NaN, and invalid values
+                if temp is not None and not np.isnan(temp) and np.isfinite(temp):
                     # Normalize intensity to 0-1 range (25C = 0, 50C = 1)
                     intensity = max(0, min(1, (temp - 25) / 25))
                     grid.append({
                         "lat": lat,
                         "lon": lon,
-                        "temperature_c": temp,
+                        "temperature_c": float(temp),  # Ensure JSON-serializable
                         "intensity": round(intensity, 3),
                     })
 

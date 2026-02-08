@@ -1,12 +1,86 @@
 """
 Urban heat analysis service.
-Handles hotspot detection, simulation, planting suggestions, and vulnerability data.
+Handles hotspot detection, simulation, planting suggestions, vulnerability data,
+tree species data, intervention ROI calculations, and cooling simulations.
 """
 
 import math
 import random
 from core.config import settings
 from services.satellite import satellite_service
+from services.funding import funding_service
+
+
+# ─── Tree Species Database ──────────────────────────────────────
+
+TREE_SPECIES = {
+    "oak": {
+        "id": "oak",
+        "name": "Oak",
+        "icon": "🌳",
+        "canopy_size": "large",
+        "cooling_c": 4.0,
+        "cost": 450,
+        "radius_m": 12,
+        "color": [34, 120, 34],
+        "lifespan_years": 80,
+        "growth_rate": "slow",
+        "description": "Large canopy, maximum cooling, high cost. Best for long-term shade in parks and wide streets.",
+    },
+    "maple": {
+        "id": "maple",
+        "name": "Maple",
+        "icon": "🍁",
+        "canopy_size": "medium",
+        "cooling_c": 2.5,
+        "cost": 300,
+        "radius_m": 8,
+        "color": [60, 160, 40],
+        "lifespan_years": 60,
+        "growth_rate": "medium",
+        "description": "Medium canopy, aesthetic fall colors. Ideal for residential streets and sidewalks.",
+    },
+    "pine": {
+        "id": "pine",
+        "name": "Pine",
+        "icon": "🌲",
+        "canopy_size": "small",
+        "cooling_c": 1.5,
+        "cost": 200,
+        "radius_m": 5,
+        "color": [20, 100, 50],
+        "lifespan_years": 100,
+        "growth_rate": "slow",
+        "description": "Evergreen year-round shade, low cooling but stays green in winter. Low maintenance.",
+    },
+}
+
+# ─── Intervention Types ─────────────────────────────────────────
+
+INTERVENTION_TYPES = {
+    "cool_roof": {
+        "id": "cool_roof",
+        "name": "Cool Roof",
+        "icon": "🏠",
+        "cooling_c": 4.0,
+        "cost_per_unit": 3000,
+        "unit": "building",
+        "radius_m": 20,
+        "color": [200, 220, 255],
+        "description": "Reflective roof coating lowers building surface temp by 3–5°C, reducing A/C load.",
+    },
+    "bio_swale": {
+        "id": "bio_swale",
+        "name": "Bio-Swale",
+        "icon": "💧",
+        "cooling_c": 2.0,
+        "cost_per_unit": 1000,
+        "unit": "installation",
+        "radius_m": 15,
+        "color": [60, 140, 200],
+        "description": "Rain garden replacing concrete — absorbs runoff and cools through evapotranspiration.",
+    },
+}
 
 
 class AnalysisService:
@@ -16,6 +90,8 @@ class AnalysisService:
     - Tree planting simulation (before/after temperature estimates)
     - Optimal planting location suggestions
     - Social vulnerability overlay data
+    - Tree species information
+    - Intervention ROI calculations
     """
 
     def __init__(self):
@@ -314,6 +390,225 @@ class AnalysisService:
 
         self._vulnerability_cache = vulnerability
         return vulnerability
+
+    # ─── Tree Species ──────────────────────────────────────────────
+
+    def get_species(self) -> list[dict]:
+        """Return all available tree species with their properties."""
+        return list(TREE_SPECIES.values())
+
+    # ─── Intervention Types ──────────────────────────────────────
+
+    def get_intervention_types(self) -> list[dict]:
+        """Return all non-tree intervention types."""
+        return list(INTERVENTION_TYPES.values())
+
+    # ─── ROI Calculator ──────────────────────────────────────────
+
+    def calculate_roi(self, interventions: list[dict], region: str = "vancouver") -> dict:
+        """
+        Calculate the Return on Investment for a set of interventions.
+
+        Args:
+            interventions: list of dicts with keys: type, species (optional),
+                          lat, lon
+
+        Returns:
+            dict with cost breakdown, cooling estimates, energy savings
+        """
+        if not interventions:
+            return {
+                "total_cost": 0,
+                "total_cooling_c": 0.0,
+                "energy_saved_yearly": 0,
+                "co2_offset_kg": 0,
+                "trees": {"count": 0, "cost": 0, "cooling_c": 0.0},
+                "cool_roofs": {"count": 0, "cost": 0, "cooling_c": 0.0},
+                "bio_swales": {"count": 0, "cost": 0, "cooling_c": 0.0},
+                "payback_years": 0,
+                "people_benefited": 0,
+            }
+
+        tree_count = 0
+        tree_cost = 0
+        tree_cooling = 0.0
+        roof_count = 0
+        roof_cost = 0
+        roof_cooling = 0.0
+        swale_count = 0
+        swale_cost = 0
+        swale_cooling = 0.0
+
+        for item in interventions:
+            itype = item.get("type", "tree")
+
+            if itype == "tree":
+                species_id = item.get("species", "maple")
+                species = TREE_SPECIES.get(species_id, TREE_SPECIES["maple"])
+                tree_count += 1
+                tree_cost += species["cost"]
+                tree_cooling += species["cooling_c"] * 0.1  # area-wide contribution
+            elif itype == "cool_roof":
+                roof_count += 1
+                roof_cost += INTERVENTION_TYPES["cool_roof"]["cost_per_unit"]
+                roof_cooling += INTERVENTION_TYPES["cool_roof"]["cooling_c"] * 0.08
+            elif itype == "bio_swale":
+                swale_count += 1
+                swale_cost += INTERVENTION_TYPES["bio_swale"]["cost_per_unit"]
+                swale_cooling += INTERVENTION_TYPES["bio_swale"]["cooling_c"] * 0.06
+
+        total_cost = tree_cost + roof_cost + swale_cost
+        total_cooling = round(tree_cooling + roof_cooling + swale_cooling, 2)
+
+        # Energy savings: ~$90/year per °C cooling per building in area
+        energy_per_degree = 90
+        buildings_affected = max(10, tree_count * 3 + roof_count * 5 + swale_count * 2)
+        energy_saved = round(total_cooling * energy_per_degree * buildings_affected)
+
+        # CO2 offset: each tree absorbs ~22kg/year, cool roofs save ~15kg, swales ~8kg
+        co2_offset = tree_count * 22 + roof_count * 15 + swale_count * 8
+
+        # Get realistic costs
+        realistic_costs = funding_service.get_realistic_costs(interventions, region)
+        realistic_total = realistic_costs["total_cost"]
+
+        # Funding sources
+        funding_mix = funding_service.calculate_funding_mix(realistic_total, co2_offset)
+
+        # Payback period (based on energy savings)
+        payback = round(realistic_total / max(1, energy_saved), 1) if energy_saved > 0 else 0
+
+        # People benefited estimate
+        people = tree_count * 50 + roof_count * 80 + swale_count * 30
+
+        return {
+            # Legacy simple costs
+            "total_cost": total_cost,
+            "total_cooling_c": total_cooling,
+            "energy_saved_yearly": energy_saved,
+            "co2_offset_kg": co2_offset,
+            "trees": {"count": tree_count, "cost": tree_cost, "cooling_c": round(tree_cooling, 2)},
+            "cool_roofs": {"count": roof_count, "cost": roof_cost, "cooling_c": round(roof_cooling, 2)},
+            "bio_swales": {"count": swale_count, "cost": swale_cost, "cooling_c": round(swale_cooling, 2)},
+            "payback_years": payback,
+            "people_benefited": people,
+            
+            # NEW: Realistic costs and funding
+            "realistic_costs": realistic_costs,
+            "funding": funding_mix,
+        }
+
+    # ─── Enhanced Simulation ─────────────────────────────────────
+
+    def simulate_cooling_v2(self, interventions: list[dict]) -> dict:
+        """
+        Enhanced simulation that handles trees with species AND
+        other intervention types (cool roofs, bio-swales).
+
+        Args:
+            interventions: list of {type, species?, lat, lon, position?}
+
+        Returns:
+            dict with detailed before/after comparison + per-item impacts.
+        """
+        if not interventions:
+            avg_temp = self._get_area_avg_temp()
+            return {
+                "before": {
+                    "avg_temperature_c": avg_temp,
+                    "max_temperature_c": round(avg_temp + 8, 1),
+                    "red_zone_area_pct": 35.0,
+                },
+                "after": {
+                    "avg_temperature_c": avg_temp,
+                    "max_temperature_c": round(avg_temp + 8, 1),
+                    "red_zone_area_pct": 35.0,
+                },
+                "trees_planted": 0,
+                "total_cooling_c": 0,
+                "area_cooling_c": 0,
+                "tree_impacts": [],
+                "roi": self.calculate_roi([]),
+            }
+
+        impacts = []
+        total_cooling = 0
+        tree_count = 0
+
+        for i, item in enumerate(interventions):
+            lat = item.get("lat", 0)
+            lon = item.get("lon", 0)
+            itype = item.get("type", "tree")
+
+            temp_data = satellite_service.get_temperature_at(lat, lon)
+            local_temp = temp_data.get("temperature_c", 35)
+
+            if itype == "tree":
+                tree_count += 1
+                species_id = item.get("species", "maple")
+                species = TREE_SPECIES.get(species_id, TREE_SPECIES["maple"])
+                base_cooling = species["cooling_c"]
+
+                # Hotter surfaces benefit more
+                if local_temp >= 45:
+                    cooling = round(base_cooling * random.uniform(1.1, 1.4), 1)
+                elif local_temp >= 38:
+                    cooling = round(base_cooling * random.uniform(0.8, 1.1), 1)
+                else:
+                    cooling = round(base_cooling * random.uniform(0.5, 0.8), 1)
+            elif itype == "cool_roof":
+                base_cooling = INTERVENTION_TYPES["cool_roof"]["cooling_c"]
+                cooling = round(base_cooling * random.uniform(0.8, 1.2), 1)
+            elif itype == "bio_swale":
+                base_cooling = INTERVENTION_TYPES["bio_swale"]["cooling_c"]
+                cooling = round(base_cooling * random.uniform(0.7, 1.1), 1)
+            else:
+                cooling = 1.0
+
+            total_cooling += cooling
+            impacts.append({
+                "index": i,
+                "type": itype,
+                "species": item.get("species"),
+                "lat": lat,
+                "lon": lon,
+                "surface_temp_before": local_temp,
+                "cooling_c": cooling,
+                "surface_temp_after": round(local_temp - cooling, 1),
+            })
+
+        # Area-wide stats
+        avg_before = self._get_area_avg_temp()
+        n = len(interventions)
+        area_cooling = min(15, total_cooling * 0.25 * (1 - 0.015 * n))
+        avg_after = round(avg_before - area_cooling, 1)
+
+        before_max = round(avg_before + 8, 1)
+        after_max = round(max(before_max - area_cooling * 1.2, avg_after + 2), 1)
+
+        before_red_pct = 35.0
+        after_red_pct = round(max(3, before_red_pct - n * 2.0), 1)
+
+        roi = self.calculate_roi(interventions)
+
+        return {
+            "before": {
+                "avg_temperature_c": avg_before,
+                "max_temperature_c": before_max,
+                "red_zone_area_pct": before_red_pct,
+            },
+            "after": {
+                "avg_temperature_c": avg_after,
+                "max_temperature_c": after_max,
+                "red_zone_area_pct": after_red_pct,
+            },
+            "trees_planted": tree_count,
+            "interventions_total": n,
+            "total_cooling_c": round(total_cooling, 1),
+            "area_cooling_c": round(area_cooling, 1),
+            "tree_impacts": impacts,
+            "roi": roi,
+        }
 
     # ─── Helpers ────────────────────────────────────────────────────
 

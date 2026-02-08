@@ -1,35 +1,80 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 
 /**
- * Custom hook for managing planted trees state.
+ * Custom hook for managing all interventions:
+ * trees (with species), cool roofs, and bio-swales.
  */
 export function useTreePlanting() {
-  const [trees, setTrees] = useState([]);
+  const [interventions, setInterventions] = useState([]);
 
-  const addTree = useCallback((coordinate) => {
-    const newTree = {
+  const addTree = useCallback((coordinate, species = "maple") => {
+    const item = {
       id: Date.now() + Math.random(),
+      type: "tree",
+      species,
       position: coordinate, // [lon, lat, altitude]
       size: 15,
       timestamp: Date.now(),
     };
-    setTrees((prev) => [...prev, newTree]);
-    return newTree;
+    setInterventions((prev) => [...prev, item]);
+    return item;
   }, []);
 
-  const removeLastTree = useCallback(() => {
-    setTrees((prev) => prev.slice(0, -1));
+  const addCoolRoof = useCallback((coordinate) => {
+    const item = {
+      id: Date.now() + Math.random(),
+      type: "cool_roof",
+      position: coordinate,
+      timestamp: Date.now(),
+    };
+    setInterventions((prev) => [...prev, item]);
+    return item;
   }, []);
 
-  const clearTrees = useCallback(() => {
-    setTrees([]);
+  const addBioSwale = useCallback((coordinate) => {
+    const item = {
+      id: Date.now() + Math.random(),
+      type: "bio_swale",
+      position: coordinate,
+      timestamp: Date.now(),
+    };
+    setInterventions((prev) => [...prev, item]);
+    return item;
   }, []);
+
+  const removeLastIntervention = useCallback(() => {
+    setInterventions((prev) => prev.slice(0, -1));
+  }, []);
+
+  const clearInterventions = useCallback(() => {
+    setInterventions([]);
+  }, []);
+
+  // Derived state
+  const trees = useMemo(
+    () => interventions.filter((i) => i.type === "tree"),
+    [interventions]
+  );
+  const coolRoofs = useMemo(
+    () => interventions.filter((i) => i.type === "cool_roof"),
+    [interventions]
+  );
+  const bioSwales = useMemo(
+    () => interventions.filter((i) => i.type === "bio_swale"),
+    [interventions]
+  );
 
   return {
+    interventions,
     trees,
+    coolRoofs,
+    bioSwales,
     addTree,
-    removeLastTree,
-    clearTrees,
+    addCoolRoof,
+    addBioSwale,
+    removeLastTree: removeLastIntervention,
+    clearTrees: clearInterventions,
     treeCount: trees.length,
+    interventionCount: interventions.length,
   };
 }

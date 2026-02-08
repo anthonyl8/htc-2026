@@ -46,6 +46,22 @@ export async function getVulnerabilityData() {
   return res.json();
 }
 
+// ─── Species & Interventions ──────────────────────────────────
+
+export async function getSpecies() {
+  const res = await fetch(`${API_URL}/analysis/species`);
+  if (!res.ok) throw new Error("Failed to fetch species");
+  return res.json();
+}
+
+export async function getInterventionTypes() {
+  const res = await fetch(`${API_URL}/analysis/interventions`);
+  if (!res.ok) throw new Error("Failed to fetch intervention types");
+  return res.json();
+}
+
+// ─── Simulation ───────────────────────────────────────────────
+
 export async function simulateCooling(trees) {
   const res = await fetch(`${API_URL}/analysis/simulate`, {
     method: "POST",
@@ -59,6 +75,56 @@ export async function simulateCooling(trees) {
     }),
   });
   if (!res.ok) throw new Error("Failed to simulate cooling");
+  return res.json();
+}
+
+export async function simulateCoolingV2(interventions) {
+  const res = await fetch(`${API_URL}/analysis/simulate-v2`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      interventions: interventions.map((item) => ({
+        type: item.type || "tree",
+        species: item.species || null,
+        position: item.position || [item.lon || 0, item.lat || 0],
+        lat: item.lat || (item.position ? item.position[1] : 0),
+        lon: item.lon || (item.position ? item.position[0] : 0),
+      })),
+    }),
+  });
+  if (!res.ok) throw new Error("Failed to simulate cooling v2");
+  return res.json();
+}
+
+// ─── ROI ──────────────────────────────────────────────────────
+
+export async function calculateROI(interventions) {
+  const res = await fetch(`${API_URL}/analysis/roi`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      interventions: interventions.map((item) => ({
+        type: item.type || "tree",
+        species: item.species || null,
+        position: item.position || [item.lon || 0, item.lat || 0],
+        lat: item.lat || (item.position ? item.position[1] : 0),
+        lon: item.lon || (item.position ? item.position[0] : 0),
+      })),
+    }),
+  });
+  if (!res.ok) throw new Error("Failed to calculate ROI");
+  return res.json();
+}
+
+// ─── Validation ───────────────────────────────────────────────
+
+export async function validateLocation(type, lat, lon) {
+  const res = await fetch(`${API_URL}/validation/check`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type, lat, lon }),
+  });
+  if (!res.ok) throw new Error("Failed to validate location");
   return res.json();
 }
 

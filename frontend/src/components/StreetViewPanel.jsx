@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, useState } from "react";
 
 /**
  * Street View panel that opens when user clicks a location.
@@ -178,6 +178,15 @@ export default function StreetViewPanel({
         <div style={styles.streetViewContainer}>
           <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
 
+          {/* Ghost Tree Markers Overlay */}
+          {nearbyTrees.length > 0 && panoramaRef.current && (
+            <TreeMarkers
+              trees={nearbyTrees}
+              panorama={panoramaRef.current}
+              location={location}
+            />
+          )}
+
           {/* Data Layer Indicator Overlay */}
           {layerInfo && (
             <div
@@ -204,7 +213,7 @@ export default function StreetViewPanel({
           {nearbyTrees.length > 0 && (
             <div style={styles.treeBadge}>
               🌳 {nearbyTrees.length} tree{nearbyTrees.length > 1 ? "s" : ""}{" "}
-              nearby
+              planned nearby
             </div>
           )}
 
@@ -228,10 +237,102 @@ export default function StreetViewPanel({
   );
 }
 
+// ─── Tree Markers Component ─────────────────────────────────
+
+function TreeMarkers({ trees, panorama, location }) {
+  const [markers, setMarkers] = useState([]);
+
+  useEffect(() => {
+    if (!panorama || !location || !trees || trees.length === 0) {
+      setMarkers([]);
+      return;
+    }
+
+    // Calculate projected positions for each tree
+    const newMarkers = trees.map((tree) => {
+      const treeLat = tree.position?.[1] ?? tree.lat ?? 0;
+      const treeLon = tree.position?.[0] ?? tree.lon ?? 0;
+
+      // Calculate bearing from Street View location to tree
+      const bearing = calculateBearing(location.lat, location.lng, treeLat, treeLon);
+      const distance = getDistanceMeters(location.lat, location.lng, treeLat, treeLon);
+
+      // Estimate vertical angle (trees appear lower when farther away)
+      const heightAngle = distance < 20 ? 5 : distance < 50 ? 0 : -5;
+
+      return {
+        id: tree.id,
+        species: tree.species || "maple",
+        bearing,
+        distance,
+        pitch: heightAngle,
+      };
+    });
+
+    setMarkers(newMarkers);
+  }, [trees, panorama, location]);
+
+  if (markers.length === 0) return null;
+
+  return (
+    <div style={styles.treeMarkersContainer}>
+      {markers.map((marker) => (
+        <div
+          key={marker.id}
+          style={{
+            ...styles.treeMarker,
+            left: `${50 + (marker.bearing / 180) * 50}%`, // Rough approximation
+            top: `${50 - marker.pitch}%`,
+          }}
+        >
+          <div style={styles.treeGhost}>
+            <div style={styles.treeGhostIcon}>🌳</div>
+            <div style={styles.treeGhostPulse} />
+            <div style={styles.treeGhostLabel}>
+              Future {marker.species}
+              <br />
+              <span style={{ fontSize: "0.65rem", opacity: 0.7 }}>
+                {Math.round(marker.distance)}m away
+              </span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Helpers ─────────────────────────────────────────────────
 
 function getDistance(lat1, lon1, lat2, lon2) {
   return Math.sqrt((lat2 - lat1) ** 2 + (lon2 - lon1) ** 2);
+}
+
+function getDistanceMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000; // Earth radius in meters
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+}
+
+function calculateBearing(lat1, lon1, lat2, lon2) {
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  const θ = Math.atan2(y, x);
+
+  return ((θ * 180) / Math.PI + 360) % 360; // Convert to degrees, normalize
 }
 
 function getLayerInfoForLocation(location, activeLayer, layerData) {
@@ -307,15 +408,15 @@ const styles = {
     backdropFilter: "blur(4px)",
   },
   panel: {
-    background: "#1a1a2e",
+    background: "linear-gradient(135deg, #1a2e24 0%, #1a3028 100%)",
     borderRadius: "16px",
     width: "min(95vw, 1100px)",
     height: "min(90vh, 700px)",
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
-    border: "1px solid rgba(255,255,255,0.1)",
-    boxShadow: "0 25px 60px rgba(0,0,0,0.6)",
+    border: "1px solid rgba(74,222,128,0.25)",
+    boxShadow: "0 25px 60px rgba(74,222,128,0.2)",
   },
   header: {
     display: "flex",
@@ -427,5 +528,55 @@ const styles = {
     fontSize: "0.82rem",
     fontWeight: 600,
     cursor: "pointer",
+    outline: "none",
+  },
+  treeMarkersContainer: {
+    position: "absolute",
+    inset: 0,
+    pointerEvents: "none",
+    zIndex: 15,
+  },
+  treeMarker: {
+    position: "absolute",
+    transform: "translate(-50%, -50%)",
+    pointerEvents: "none",
+  },
+  treeGhost: {
+    position: "relative",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+  },
+  treeGhostIcon: {
+    fontSize: "2rem",
+    filter: "drop-shadow(0 0 8px rgba(74,222,128,0.8))",
+    animation: "pulse-tree 2s ease-in-out infinite",
+    position: "relative",
+    zIndex: 2,
+  },
+  treeGhostPulse: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    width: "60px",
+    height: "60px",
+    borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(74,222,128,0.4) 0%, transparent 70%)",
+    animation: "pulse-ring 2s ease-in-out infinite",
+    zIndex: 1,
+  },
+  treeGhostLabel: {
+    marginTop: "4px",
+    padding: "4px 8px",
+    background: "rgba(20,35,30,0.95)",
+    border: "1px solid rgba(74,222,128,0.5)",
+    borderRadius: "6px",
+    fontSize: "0.7rem",
+    fontWeight: 600,
+    color: "#4ade80",
+    textAlign: "center",
+    whiteSpace: "nowrap",
+    boxShadow: "0 2px 8px rgba(74,222,128,0.3)",
   },
 };

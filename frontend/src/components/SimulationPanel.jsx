@@ -1,6 +1,5 @@
-
 /**
- * Before/After simulation panel that shows the cooling impact of planted trees.
+ * Before/After simulation panel that shows the cooling impact of all interventions.
  * Appears at the bottom-right of the screen.
  */
 export default function SimulationPanel({ simulation, isOpen, onClose }) {
@@ -77,8 +76,8 @@ export default function SimulationPanel({ simulation, isOpen, onClose }) {
           {/* Summary */}
           <div style={styles.summary}>
             <div style={styles.summaryRow}>
-              <span style={styles.summaryLabel}>Trees Planted</span>
-              <span style={styles.summaryValue}>{simulation.trees_planted}</span>
+              <span style={styles.summaryLabel}>Interventions</span>
+              <span style={styles.summaryValue}>{simulation.interventions_total || simulation.trees_planted}</span>
             </div>
             <div style={styles.summaryRow}>
               <span style={styles.summaryLabel}>Area Cooling</span>
@@ -94,23 +93,25 @@ export default function SimulationPanel({ simulation, isOpen, onClose }) {
             </div>
           </div>
 
-          {/* Per-tree impacts */}
+          {/* Per-item impacts */}
           {simulation.tree_impacts && simulation.tree_impacts.length > 0 && (
             <div style={styles.impacts}>
-              <span style={styles.impactsTitle}>Per-Tree Impact</span>
+              <span style={styles.impactsTitle}>Per-Item Impact</span>
               <div style={styles.impactsList}>
-                {simulation.tree_impacts.slice(0, 6).map((t, i) => (
+                {simulation.tree_impacts.slice(0, 8).map((t, i) => (
                   <div key={i} style={styles.impactRow}>
-                    <span style={styles.impactTree}>🌳 #{i + 1}</span>
+                    <span style={styles.impactTree}>
+                      {t.type === "cool_roof" ? "🏠" : t.type === "bio_swale" ? "💧" : "🌳"} #{i + 1}
+                    </span>
                     <span style={styles.impactTemp}>
                       {t.surface_temp_before}°C → {t.surface_temp_after}°C
                     </span>
                     <span style={styles.impactDelta}>−{t.cooling_c}°C</span>
                   </div>
                 ))}
-                {simulation.tree_impacts.length > 6 && (
+                {simulation.tree_impacts.length > 8 && (
                   <span style={styles.moreText}>
-                    +{simulation.tree_impacts.length - 6} more trees...
+                    +{simulation.tree_impacts.length - 8} more...
                   </span>
                 )}
               </div>
@@ -122,7 +123,7 @@ export default function SimulationPanel({ simulation, isOpen, onClose }) {
       {!simulation && !loading && (
         <div style={styles.empty}>
           <p style={styles.emptyText}>
-            Plant some trees on the map, then open this panel to see the
+            Add interventions on the map, then open this panel to see the
             simulated cooling impact.
           </p>
         </div>
@@ -144,13 +145,13 @@ const styles = {
     bottom: "16px",
     right: "16px",
     width: "340px",
-    background: "rgba(26,26,46,0.97)",
+    background: "linear-gradient(135deg, rgba(20,35,30,0.97) 0%, rgba(26,40,35,0.97) 100%)",
     borderRadius: "14px",
-    border: "1px solid rgba(255,255,255,0.1)",
+    border: "1px solid rgba(74,222,128,0.2)",
     backdropFilter: "blur(12px)",
     zIndex: 100,
     overflow: "hidden",
-    boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+    boxShadow: "0 8px 32px rgba(74,222,128,0.15)",
   },
   header: {
     display: "flex",
@@ -172,6 +173,7 @@ const styles = {
     fontSize: "1.4rem",
     cursor: "pointer",
     lineHeight: 1,
+    outline: "none",
   },
   loadingBar: {
     height: "3px",
