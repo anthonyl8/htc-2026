@@ -19,6 +19,7 @@
     "@deck.gl/react": "^9.2.6",
     "@loaders.gl/gltf": "^4.3.4",
     "@loaders.gl/tiles": "^4.3.4",
+    "@supabase/supabase-js": "^2.95.3",
     "@vis.gl/react-google-maps": "^1.7.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"

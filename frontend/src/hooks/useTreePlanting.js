@@ -3,9 +3,24 @@ import { useState, useCallback, useMemo } from "react";
 /**
  * Custom hook for managing all interventions:
  * trees (with species), cool roofs, and bio-swales.
+ * Supports loading from project (Supabase) via loadInterventions.
  */
 export function useTreePlanting() {
   const [interventions, setInterventions] = useState([]);
+
+  const loadInterventions = useCallback((items) => {
+    if (!items || !Array.isArray(items)) return;
+    setInterventions(
+      items.map((i) => ({
+        id: i.id || `${Date.now()}-${Math.random()}`,
+        type: i.type || "tree",
+        species: i.species,
+        position: i.position || [i.lon, i.lat],
+        size: 15,
+        timestamp: i.timestamp || Date.now(),
+      }))
+    );
+  }, []);
 
   const addTree = useCallback((coordinate, species = "maple") => {
     const item = {
@@ -74,6 +89,7 @@ export function useTreePlanting() {
     addBioSwale,
     removeLastTree: removeLastIntervention,
     clearTrees: clearInterventions,
+    loadInterventions,
     treeCount: trees.length,
     interventionCount: interventions.length,
   };

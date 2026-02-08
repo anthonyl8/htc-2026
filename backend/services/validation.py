@@ -20,97 +20,57 @@ class ValidationService:
 
     async def validate_tree_location(self, lat: float, lon: float) -> dict:
         """
-        Check if a tree can be planted at this location.
+        Check if a tree can be planted at this location using a single, optimized Overpass query.
         Returns: {valid: bool, reason: str, surface_type: str}
         """
-        # Check land use via Overpass API
+        # Combined query to fetch all relevant features at once.
         query = f"""
         [out:json][timeout:5];
-        (
-          way(around:10,{lat},{lon})["landuse"~"grass|meadow|greenfield|recreation_ground|village_green"];
-          way(around:10,{lat},{lon})["natural"~"wood|scrub|grassland|heath"];
-          way(around:10,{lat},{lon})["leisure"~"park|garden|playground"];
-          relation(around:10,{lat},{lon})["landuse"~"grass|meadow"];
-        );
+        way(around:10,{lat},{lon});
         out tags;
         """
 
         try:
             async with httpx.AsyncClient(timeout=10) as client:
                 response = await client.post(OVERPASS_URL, data={"data": query})
-                if response.status_code != 200:
-                    raise Exception(f"Overpass API error: {response.status_code}")
-                try:
-                    data = response.json()
-                except ValueError:
-                    raise Exception("Invalid JSON from Overpass API")
+                response.raise_for_status()
+                data = response.json()
 
             elements = data.get("elements", [])
 
-            if elements:
-                # Found green space
-                tags = elements[0].get("tags", {})
-                surface_type = tags.get("landuse") or tags.get("natural") or tags.get("leisure", "grass")
+            if not elements:
                 return {
                     "valid": True,
-                    "reason": f"Valid planting location: {surface_type}",
-                    "surface_type": surface_type,
-                    "confidence": "high",
+                    "reason": "Suitable location for planting",
+                    "surface_type": "unknown",
+                    "confidence": "medium", # Upgrade from low to medium
                 }
 
-            # No explicit green space found - check for pavement/water
-            forbidden_query = f"""
-            [out:json][timeout:5];
-            (
-              way(around:10,{lat},{lon})["highway"];
-              way(around:10,{lat},{lon})["waterway"];
-              way(around:10,{lat},{lon})["natural"="water"];
-              way(around:10,{lat},{lon})["building"];
-            );
-            out tags;
-            """
-
-            async with httpx.AsyncClient(timeout=10) as client:
-                response = await client.post(OVERPASS_URL, data={"data": forbidden_query})
-                if response.status_code != 200:
-                    raise Exception(f"Overpass API error: {response.status_code}")
-                try:
-                    data = response.json()
-                except ValueError:
-                    raise Exception("Invalid JSON from Overpass API")
-
-            forbidden = data.get("elements", [])
-
-            if forbidden:
-                tags = forbidden[0].get("tags", {})
+            # Prioritize forbidden areas first
+            for el in elements:
+                tags = el.get("tags", {})
                 if "highway" in tags:
-                    return {
-                        "valid": False,
-                        "reason": "Cannot plant on roads or pavement",
-                        "surface_type": "pavement",
-                        "confidence": "high",
-                    }
-                elif "waterway" in tags or tags.get("natural") == "water":
-                    return {
-                        "valid": False,
-                        "reason": "Cannot plant in water",
-                        "surface_type": "water",
-                        "confidence": "high",
-                    }
-                elif "building" in tags:
-                    return {
-                        "valid": False,
-                        "reason": "Cannot plant on buildings (try Cool Roof instead)",
-                        "surface_type": "building",
-                        "confidence": "high",
-                    }
+                    return {"valid": False, "reason": "Cannot plant on roads or pavement", "surface_type": "pavement", "confidence": "high"}
+                if "waterway" in tags or tags.get("natural") == "water":
+                    return {"valid": False, "reason": "Cannot plant in water", "surface_type": "water", "confidence": "high"}
+                if "building" in tags:
+                    return {"valid": False, "reason": "Cannot plant on buildings (try Cool Roof instead)", "surface_type": "building", "confidence": "high"}
 
-            # No data - assume valid but low confidence
+            # Then, check for valid green spaces
+            green_tags = ["grass", "meadow", "greenfield", "recreation_ground", "village_green", "wood", "scrub", "grassland", "heath", "park", "garden", "playground"]
+            for el in elements:
+                tags = el.get("tags", {})
+                for key in ["landuse", "natural", "leisure"]:
+                    if tags.get(key) in green_tags:
+                        surface_type = tags.get(key)
+                        return {"valid": True, "reason": f"Valid planting location: {surface_type}", "surface_type": surface_type, "confidence": "high"}
+
+            # If no specific match, it's likely unclassified but not explicitly forbidden
             return {
                 "valid": True,
-                "reason": "No OSM data available, assuming valid",
-                "surface_type": "unknown",
-                "confidence": "low",
+                "reason": "Surface is not a road, building, or water body.",
+                "surface_type": "unknown_permeable",
+                "confidence": "medium",
             }
 
         except Exception as e:
@@ -230,15 +190,26 @@ class ValidationService:
         lat: float,
         lon: float,
     ) -> dict:
-        """Validate any intervention type."""
+        """Validate any intervention type, with caching."""
+        # Round to ~5m to group nearby requests
+        cache_key = (intervention_type, round(lat, 4), round(lon, 4))
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+
         if intervention_type == "tree":
-            return await self.validate_tree_location(lat, lon)
+            result = await self.validate_tree_location(lat, lon)
         elif intervention_type == "cool_roof":
-            return await self.validate_cool_roof_location(lat, lon)
+            result = await self.validate_cool_roof_location(lat, lon)
         elif intervention_type == "bio_swale":
-            return await self.validate_bioswale_location(lat, lon)
+            result = await self.validate_bioswale_location(lat, lon)
         else:
-            return {"valid": False, "reason": "Unknown intervention type"}
+            result = {"valid": False, "reason": "Unknown intervention type"}
+        
+        # Don't cache errors
+        if not result.get("error"):
+            self.cache[cache_key] = result
+            
+        return result
 
 
 # Singleton

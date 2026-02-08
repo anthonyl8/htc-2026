@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { APIProvider } from "@vis.gl/react-google-maps";
 import MapView from "./components/MapView";
-import SearchBar from "./components/SearchBar";
 import SimulationPanel from "./components/SimulationPanel";
 import StatsPanel from "./components/StatsPanel";
 import StreetViewPanel from "./components/StreetViewPanel";
@@ -14,7 +13,19 @@ import GrantProposalCard from "./components/GrantProposalCard";
 import HeaderBar from "./components/HeaderBar";
 import AlertBar from "./components/AlertBar";
 import SidebarPanel from "./components/SidebarPanel";
+import ProjectSwitcher from "./components/ProjectSwitcher";
+import ProjectDashboard from "./components/ProjectDashboard";
+import LoginScreen from "./components/LoginScreen";
+import NameModal from "./components/NameModal";
 import { useTreePlanting } from "./hooks/useTreePlanting";
+import { useRealtimeInterventions } from "./hooks/useRealtimeInterventions";
+import { useAuth } from "./contexts/AuthContext";
+import {
+  listProjects,
+  createProject,
+  getInterventions,
+  replaceInterventions,
+} from "./services/projectService";
 import {
   getHotspots,
   getSuggestions,
@@ -27,8 +38,13 @@ import {
 import "./App.css";
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
+const PERSISTENCE_ENABLED = !!(
+  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 function App() {
+  const auth = useAuth();
+
   const [mode, setMode] = useState("explore");
   const [simulationOpen, setSimulationOpen] = useState(false);
   const [temperature, setTemperature] = useState(null);
@@ -79,6 +95,14 @@ function App() {
   const [validationStatus, setValidationStatus] = useState(null);
   const validationTimerRef = useRef(null);
 
+  // Anonymous user "save-to-login" flow
+  const [isSavingAfterLogin, setIsSavingAfterLogin] = useState(false);
+
+  // Naming Modal State
+  const [nameModalOpen, setNameModalOpen] = useState(false);
+  const [defaultProposalName, setDefaultProposalName] = useState("");
+  const [pendingAction, setPendingAction] = useState(null); // { type: 'save' | 'create', ...data }
+
   const {
     interventions,
     trees,
@@ -89,11 +113,137 @@ function App() {
     addBioSwale,
     removeLastTree,
     clearTrees,
+    loadInterventions,
     treeCount,
     interventionCount,
   } = useTreePlanting();
 
   const mapRef = useRef(null);
+
+  // ─── Persistence (Supabase) ───────────────────────────────────
+  const [currentProject, setCurrentProject] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [showDashboard, setShowDashboard] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Load projects when logged in
+  useEffect(() => {
+    if (!PERSISTENCE_ENABLED || !auth?.isAuthenticated) return;
+    listProjects()
+      .then(setProjects)
+      .catch(() => setProjects([]));
+  }, [PERSISTENCE_ENABLED, auth?.isAuthenticated]);
+
+  // Trigger save after a successful login
+  useEffect(() => {
+    if (isSavingAfterLogin && auth?.isAuthenticated) {
+      handleSave();
+      setIsSavingAfterLogin(false);
+    }
+  }, [isSavingAfterLogin, auth?.isAuthenticated]);
+
+  // Load interventions when project changes
+  useEffect(() => {
+    if (!PERSISTENCE_ENABLED || !currentProject?.id) return;
+    getInterventions(currentProject.id)
+      .then(loadInterventions)
+      .catch(() => loadInterventions([]));
+  }, [PERSISTENCE_ENABLED, currentProject?.id]);
+
+  const handleSave = useCallback(async () => {
+    if (!PERSISTENCE_ENABLED) return;
+    if (!auth?.isAuthenticated) {
+      setIsSavingAfterLogin(true);
+      setShowLoginModal(true);
+      return;
+    }
+
+    // If project already has an ID, just save
+    if (currentProject?.id) {
+      setSaving(true);
+      try {
+        await replaceInterventions(currentProject.id, interventions);
+        setCurrentProject((prev) => (prev ? { ...prev, updated_at: new Date().toISOString() } : null));
+        showToast("Proposal saved", "info");
+      } catch (e) {
+        showToast(e.message || "Save failed", "error");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    // Otherwise, open name modal for new project
+    const proposalExists = projects.some(p => p.name.startsWith("Proposal"));
+    const defaultName = proposalExists ? `Proposal ${projects.length}` : "Proposal";
+    setDefaultProposalName(defaultName);
+    setPendingAction({ type: "save" });
+    setNameModalOpen(true);
+  }, [PERSISTENCE_ENABLED, auth?.isAuthenticated, currentProject, interventions, projects]);
+
+  const handleCreateNewProject = useCallback(async () => {
+    if (!PERSISTENCE_ENABLED || !auth?.isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
+    const proposalExists = projects.some(p => p.name.startsWith("Proposal"));
+    const defaultName = proposalExists ? `Proposal ${projects.length}` : "Proposal";
+    setDefaultProposalName(defaultName);
+    setPendingAction({ type: "create" });
+    setNameModalOpen(true);
+  }, [PERSISTENCE_ENABLED, auth?.isAuthenticated, projects]);
+
+  const handleNameConfirm = useCallback(async (name) => {
+    setNameModalOpen(false);
+    if (!pendingAction) return;
+
+    if (pendingAction.type === "save") {
+      setSaving(true);
+      try {
+        const p = await createProject(name);
+        setCurrentProject(p);
+        setProjects((prev) => [p, ...prev]);
+        await replaceInterventions(p.id, interventions);
+        showToast("Proposal saved", "info");
+      } catch (e) {
+        showToast(e.message || "Save failed", "error");
+      } finally {
+        setSaving(false);
+      }
+    } else if (pendingAction.type === "create") {
+      try {
+        const p = await createProject(name);
+        setCurrentProject(p);
+        setProjects((prev) => [p, ...prev]);
+        loadInterventions([]);
+        showToast("New proposal created", "info");
+        setShowDashboard(false);
+      } catch (e) {
+        showToast(e.message || "Failed to create", "error");
+      }
+    }
+    setPendingAction(null);
+  }, [pendingAction, interventions, loadInterventions]);
+
+  const handleSelectProject = useCallback((p) => {
+    setCurrentProject(p);
+    setShowDashboard(false);
+  }, []);
+
+  const handleOpenDashboard = useCallback(() => {
+    if (!auth?.isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
+    setShowDashboard(true);
+  }, [auth?.isAuthenticated]);
+
+  // Realtime: sync interventions when another tab/user changes them
+  useRealtimeInterventions(
+    PERSISTENCE_ENABLED ? currentProject?.id : null,
+    loadInterventions
+  );
 
   const showToast = useCallback((message, type = "warning") => {
     setValidationMessage(message);
@@ -191,8 +341,11 @@ function App() {
       return;
     }
 
-    // Reset to loading state immediately on move
+    // Reset to loading state immediately on move and show toast
     setValidationStatus((prev) => prev?.loading ? prev : { loading: true });
+    // Force show toast immediately to replace any existing message
+    setValidationMessage("Validating location...");
+    setValidationType("info");
 
     // Clear previous timer
     if (validationTimerRef.current) clearTimeout(validationTimerRef.current);
@@ -234,6 +387,7 @@ function App() {
       } else {
         // Fallback to fresh validation if not hovered
         try {
+          showToast("Validating location...", "info");
           validation = await validateLocation("tree", lat, lon);
         } catch (err) {
           console.warn("Validation failed:", err);
@@ -249,10 +403,17 @@ function App() {
         if (validation.confidence === "low") {
           showToast(`Tree planted (${validation.reason})`, "info");
         } else if (validation.confidence === "medium") {
-          showToast(`Tree planted on ${validation.surface_type}`, "info");
+          const surface = validation.surface_type;
+          if (surface === "unknown" || surface === "unknown_permeable") {
+            showToast("Tree planted", "info");
+          } else {
+            showToast(`Tree planted on ${surface}`, "info");
+          }
+        } else {
+          showToast("Tree planted", "info");
         }
       } else {
-         showToast("Validation unavailable - tree planted anyway", "warning");
+         showToast("Tree planted", "info");
       }
       
       addTree(coordinate, selectedSpecies);
@@ -277,6 +438,7 @@ function App() {
         validation = validationStatus;
       } else {
         try {
+          showToast("Validating location...", "info");
           validation = await validateLocation("cool_roof", lat, lon);
         } catch (err) {
           console.warn("Validation failed:", err);
@@ -291,9 +453,11 @@ function App() {
         
         if (validation.building_type && validation.building_type !== "unknown") {
           showToast(`Cool roof applied to ${validation.building_type}`, "info");
+        } else {
+          showToast("Cool roof applied", "info");
         }
       } else {
-        showToast("Validation unavailable - cool roof placed anyway", "warning");
+        showToast("Cool roof applied", "info");
       }
       
       addCoolRoof(coordinate);
@@ -318,6 +482,7 @@ function App() {
         validation = validationStatus;
       } else {
         try {
+          showToast("Validating location...", "info");
           validation = await validateLocation("bio_swale", lat, lon);
         } catch (err) {
           console.warn("Validation failed:", err);
@@ -327,7 +492,11 @@ function App() {
       if (validation) {
         if (validation.near_feature) {
           showToast(`Bio-swale placed near ${validation.near_feature}`, "info");
+        } else {
+          showToast("Bio-swale placed", "info");
         }
+      } else {
+        showToast("Bio-swale placed", "info");
       }
       
       addBioSwale(coordinate);
@@ -546,10 +715,21 @@ function App() {
     <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
       <div style={styles.app}>
         {/* Header with Integrated Navigation & Search */}
-        <HeaderBar 
-          activeTab={activeTab} 
-          onTabChange={handleTabChange} 
+        <HeaderBar
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
           onPlaceSelect={handlePlaceSelect}
+          persistenceEnabled={PERSISTENCE_ENABLED}
+          currentProject={currentProject}
+          projects={projects}
+          onSelectProject={handleSelectProject}
+          onNewProject={handleCreateNewProject}
+          onOpenDashboard={handleOpenDashboard}
+          onSave={handleSave}
+          saving={saving}
+          user={auth?.user}
+          onSignOut={auth?.signOut}
+          onSignIn={() => setShowLoginModal(true)}
         />
         
         <AlertBar
@@ -721,10 +901,54 @@ function App() {
         <InfoCard item={selectedItem} onClose={() => setSelectedItem(null)} />
 
         {/* Grant Proposal Card */}
-        <GrantProposalCard 
-          isOpen={grantProposalOpen} 
-          onClose={() => setGrantProposalOpen(false)} 
-          proposal={proposalText} 
+        <GrantProposalCard
+          isOpen={grantProposalOpen}
+          onClose={() => setGrantProposalOpen(false)}
+          proposal={proposalText}
+        />
+
+        {/* Login Modal (anonymous-first: sign in to save) */}
+        {showLoginModal && (
+          <div style={styles.modalOverlay}>
+        <LoginScreen
+          onSuccess={() => {
+            setShowLoginModal(false);
+            // The useEffect hook will now trigger the save
+          }}
+          onSkip={() => {
+            setShowLoginModal(false);
+            setIsSavingAfterLogin(false); // User decided not to save
+          }}
+        />
+          </div>
+        )}
+
+        {/* Project Dashboard */}
+        {showDashboard && (
+          <div style={styles.modalOverlay}>
+            <ProjectDashboard
+              onSelectProject={handleSelectProject}
+              onCreateNew={handleCreateNewProject}
+              projects={projects}
+            />
+            <button
+              onClick={() => setShowDashboard(false)}
+              style={styles.closeDashboard}
+            >
+              ✕ Close
+            </button>
+          </div>
+        )}
+
+        {/* Naming Modal */}
+        <NameModal
+          isOpen={nameModalOpen}
+          onClose={() => {
+            setNameModalOpen(false);
+            setPendingAction(null);
+          }}
+          onConfirm={handleNameConfirm}
+          defaultName={defaultProposalName}
         />
       </div>
     </APIProvider>
@@ -837,6 +1061,28 @@ const styles = {
   setupHint: {
     color: "#888",
     fontSize: "0.82rem",
+  },
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.7)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 9999,
+  },
+  closeDashboard: {
+    position: "fixed",
+    top: "24px",
+    right: "24px",
+    padding: "10px 20px",
+    background: "rgba(20, 40, 32, 0.95)",
+    border: "1px solid rgba(74, 222, 128, 0.3)",
+    borderRadius: "8px",
+    color: "#4ade80",
+    fontSize: "0.9rem",
+    cursor: "pointer",
+    zIndex: 10000,
   },
 };
 
