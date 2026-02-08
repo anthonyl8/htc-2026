@@ -161,3 +161,156 @@ button:active {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(74, 222, 128, 0.5);
 }
+
+/* App layout */
+.App {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.App-mainContent {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  min-height: 0;
+  position: relative;
+}
+
+.App-leftRail {
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 0;
+}
+
+.App-resultsPanel {
+  width: 340px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  min-height: 0;
+  background: var(--panel-bg);
+  border-right: 1px solid var(--color-green-border);
+}
+
+.App-roiPanelInline {
+  position: static;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.App-simulationPanelInline {
+  position: static;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.App-mapArea {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
+.App-setupScreen {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0a1a;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.App-setupCard {
+  background: #1a1a2e;
+  border-radius: var(--radius-2xl);
+  padding: 40px;
+  text-align: center;
+  max-width: 480px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.App-setupTitle {
+  color: var(--color-green);
+  font-size: 1.5rem;
+  margin-top: 12px;
+  margin-bottom: 16px;
+}
+
+.App-setupText {
+  color: #bbb;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.App-setupCode {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-green);
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  text-align: left;
+  margin-bottom: 16px;
+  border: 1px solid var(--color-green-border);
+  overflow-x: auto;
+}
+
+.App-setupHint {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+
+.App-modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.App-closeDashboard {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  padding: 10px 20px;
+  background: rgba(20, 40, 32, 0.95);
+  border: 1px solid var(--color-green-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-green);
+  font-size: 0.9rem;
+  cursor: pointer;
+  z-index: 10000;
+}
+
+.App-legendColumn {
+  position: absolute;
+  bottom: 24px;
+  right: 70px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.App-legendColumn-inner {
+  pointer-events: auto;
+}

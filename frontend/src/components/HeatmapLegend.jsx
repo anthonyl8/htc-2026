@@ -1,4 +1,5 @@
 import React from "react";
+import "./HeatmapLegend.css";
 
 /**
  * Map Legend - Shows legends for different active data layers.
@@ -11,14 +12,14 @@ export default function HeatmapLegend({ activeLayer, onInfoClick, style = {} }) 
   if (!config) return null;
 
   return (
-    <div style={{ ...styles.container, ...style }}>
-      <div style={styles.header}>
-        <span style={styles.icon}>{config.icon}</span>
-        <span style={styles.title}>{config.title}</span>
+    <div className="HeatmapLegend" style={style}>
+      <div className="HeatmapLegend-header">
+        <span className="HeatmapLegend-icon">{config.icon}</span>
+        <span className="HeatmapLegend-title">{config.title}</span>
         {onInfoClick && (
           <button
             onClick={() => onInfoClick({ type: activeLayer })}
-            style={styles.infoButton}
+            className="HeatmapLegend-infoBtn"
             title={`Show ${config.title} information`}
           >
             ℹ️
@@ -26,27 +27,27 @@ export default function HeatmapLegend({ activeLayer, onInfoClick, style = {} }) 
         )}
       </div>
 
-      <div style={styles.content}>
+      <div className="HeatmapLegend-content">
         {config.items.map((item, i) => (
-          <div key={i} style={styles.row}>
+          <div key={i} className="HeatmapLegend-row">
             <div
+              className="HeatmapLegend-colorBox"
               style={{
-                ...styles.colorBox,
                 background: item.color,
                 border: item.border || "1px solid rgba(255,255,255,0.3)",
                 borderRadius: item.shape === "circle" ? "50%" : "4px",
               }}
             />
-            <div style={styles.labelContainer}>
-              <span style={styles.label}>{item.label}</span>
-              {item.desc && <span style={styles.desc}>{item.desc}</span>}
+            <div className="HeatmapLegend-labelContainer">
+              <span className="HeatmapLegend-label">{item.label}</span>
+              {item.desc && <span className="HeatmapLegend-desc">{item.desc}</span>}
             </div>
           </div>
         ))}
       </div>
 
-      <div style={styles.footer}>
-        <span style={styles.source}>{config.source}</span>
+      <div className="HeatmapLegend-footer">
+        <span className="HeatmapLegend-source">{config.source}</span>
       </div>
     </div>
   );
@@ -181,97 +182,3 @@ function getLegendConfig(layer) {
   }
 }
 
-// ─── Styles ──────────────────────────────────────────────────
-
-const styles = {
-  container: {
-    position: "absolute",
-    top: "16px",
-    right: "16px",
-    display: "flex",
-    flexDirection: "column",
-    background: "linear-gradient(135deg, rgba(20,35,30,0.95) 0%, rgba(26,40,35,0.95) 100%)",
-    borderRadius: "12px",
-    border: "1px solid rgba(74,222,128,0.2)",
-    backdropFilter: "blur(16px)",
-    zIndex: 150,
-    minWidth: "220px",
-    boxShadow: "0 4px 20px rgba(74,222,128,0.15)",
-    transition: "all 0.3s ease",
-  },
-  header: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "10px 14px",
-    borderBottom: "1px solid rgba(255,255,255,0.1)",
-  },
-  infoButton: {
-    marginLeft: "auto",
-    background: "rgba(74,222,128,0.15)",
-    border: "1px solid rgba(74,222,128,0.3)",
-    borderRadius: "6px",
-    width: "24px",
-    height: "24px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    fontSize: "12px",
-    transition: "all 0.2s",
-    color: "#4ade80",
-    opacity: 0.8,
-  },
-  icon: {
-    fontSize: "1rem",
-  },
-  title: {
-    color: "#4ade80",
-    fontSize: "0.85rem",
-    fontWeight: 700,
-    letterSpacing: "0.3px",
-  },
-  content: {
-    display: "flex",
-    flexDirection: "column",
-    padding: "10px 14px",
-    gap: "8px",
-  },
-  row: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  },
-  colorBox: {
-    width: "20px",
-    height: "20px",
-    flexShrink: 0,
-    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-  },
-  labelContainer: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  label: {
-    color: "#fff",
-    fontSize: "0.75rem",
-    fontWeight: 700,
-  },
-  desc: {
-    color: "#aaa",
-    fontSize: "0.65rem",
-    fontWeight: 500,
-    marginTop: "1px",
-  },
-  footer: {
-    padding: "8px 14px",
-    borderTop: "1px solid rgba(255,255,255,0.08)",
-  },
-  source: {
-    color: "#666",
-    fontSize: "0.62rem",
-    fontWeight: 600,
-    letterSpacing: "0.3px",
-    textTransform: "uppercase",
-  },
-};

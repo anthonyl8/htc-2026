@@ -1,0 +1,96 @@
+.HeaderBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 24px;
+  height: 64px;
+  background: var(--header-bg);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  color: #fff;
+  z-index: var(--z-header);
+}
+
+.HeaderBar-brandSection {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 200px;
+}
+
+.HeaderBar-logo {
+  font-size: 1.8rem;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+.HeaderBar-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.HeaderBar-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.HeaderBar-subtitle {
+  font-size: 0.7rem;
+  opacity: 0.8;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.HeaderBar-saveBtn {
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.HeaderBar-brandSection .HeaderBar-saveBtn {
+  margin-left: 12px;
+}
+
+.HeaderBar-userRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.HeaderBar-userEmail {
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+.HeaderBar-signOutBtn {
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.HeaderBar-signInBtn {
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.HeaderBar-searchSection {
+  min-width: 260px;
+  display: flex;
+  justify-content: flex-end;
+}

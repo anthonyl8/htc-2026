@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { visualizeItem } from "../services/api";
+import "./InfoCard.css";
 
 /**
  * InfoCard - displays detailed information about clicked map items
@@ -38,17 +39,17 @@ export default function InfoCard({ item, onClose }) {
       case "tree":
         return (
           <>
-            <div style={styles.header}>
-              <span style={styles.icon}>🌳</span>
-              <h3 style={styles.title}>Planted Tree</h3>
+            <div className="InfoCard-header">
+              <span className="InfoCard-icon">🌳</span>
+              <h3 className="InfoCard-title">Planted Tree</h3>
             </div>
-            <div style={styles.section}>
-              <div style={styles.label}>Species</div>
-              <div style={styles.value}>{item.species || "Maple"}</div>
+            <div className="InfoCard-section">
+              <div className="InfoCard-label">Species</div>
+              <div className="InfoCard-value">{item.species || "Maple"}</div>
             </div>
-            <div style={styles.section}>
-              <div style={styles.label}>Cooling Effect</div>
-              <div style={styles.value}>
+            <div className="InfoCard-section">
+              <div className="InfoCard-label">Cooling Effect</div>
+              <div className="InfoCard-value">
                 {item.species === "oak"
                   ? "−4.0°C"
                   : item.species === "pine"
@@ -56,13 +57,13 @@ export default function InfoCard({ item, onClose }) {
                   : "−2.5°C"}
               </div>
             </div>
-            <div style={styles.section}>
-              <div style={styles.label}>Cost</div>
-              <div style={styles.value}>
+            <div className="InfoCard-section">
+              <div className="InfoCard-label">Cost</div>
+              <div className="InfoCard-value">
                 ${item.species === "oak" ? "450" : item.species === "pine" ? "200" : "300"}
               </div>
             </div>
-            <div style={styles.description}>
+            <div className="InfoCard-description">
               {item.species === "oak" &&
                 "Large canopy tree providing maximum cooling. Best for parks and wide streets. Slow growth, long lifespan (80 years)."}
               {item.species === "pine" &&
@@ -70,7 +71,7 @@ export default function InfoCard({ item, onClose }) {
               {(!item.species || item.species === "maple") &&
                 "Medium canopy with aesthetic fall colors. Ideal for residential streets and sidewalks. Medium growth rate."}
             </div>
-            <button onClick={handleRealLifeView} disabled={loading} style={styles.actionButton}>
+            <button onClick={handleRealLifeView} disabled={loading} className="InfoCard-actionBtn">
               {loading ? "🔄 Generating..." : "📸 Real Life View"}
             </button>
           </>
@@ -79,24 +80,24 @@ export default function InfoCard({ item, onClose }) {
       case "cool_roof":
         return (
           <>
-            <div style={styles.header}>
-              <span style={styles.icon}>🏠</span>
-              <h3 style={styles.title}>Cool Roof</h3>
+            <div className="InfoCard-header">
+              <span className="InfoCard-icon">🏠</span>
+              <h3 className="InfoCard-title">Cool Roof</h3>
             </div>
-            <div style={styles.section}>
-              <div style={styles.label}>Cooling Effect</div>
-              <div style={styles.value}>−4.0°C</div>
+            <div className="InfoCard-section">
+              <div className="InfoCard-label">Cooling Effect</div>
+              <div className="InfoCard-value">−4.0°C</div>
             </div>
-            <div style={styles.section}>
-              <div style={styles.label}>Cost</div>
-              <div style={styles.value}>$3,000</div>
+            <div className="InfoCard-section">
+              <div className="InfoCard-label">Cost</div>
+              <div className="InfoCard-value">$3,000</div>
             </div>
-            <div style={styles.description}>
+            <div className="InfoCard-description">
               Reflective roof coating lowers building surface temperature by 3–5°C,
               reducing A/C load and energy costs. Reflects solar radiation, keeping
               building and surrounding area cooler.
             </div>
-            <button onClick={handleRealLifeView} disabled={loading} style={styles.actionButton}>
+            <button onClick={handleRealLifeView} disabled={loading} className="InfoCard-actionBtn">
               {loading ? "🔄 Generating..." : "📸 Real Life View"}
             </button>
           </>
@@ -105,24 +106,24 @@ export default function InfoCard({ item, onClose }) {
       case "bio_swale":
         return (
           <>
-            <div style={styles.header}>
-              <span style={styles.icon}>💧</span>
-              <h3 style={styles.title}>Bio-Swale</h3>
+            <div className="InfoCard-header">
+              <span className="InfoCard-icon">💧</span>
+              <h3 className="InfoCard-title">Bio-Swale</h3>
             </div>
-            <div style={styles.section}>
-              <div style={styles.label}>Cooling Effect</div>
-              <div style={styles.value}>−2.0°C</div>
+            <div className="InfoCard-section">
+              <div className="InfoCard-label">Cooling Effect</div>
+              <div className="InfoCard-value">−2.0°C</div>
             </div>
-            <div style={styles.section}>
-              <div style={styles.label}>Cost</div>
-              <div style={styles.value}>$1,000</div>
+            <div className="InfoCard-section">
+              <div className="InfoCard-label">Cost</div>
+              <div className="InfoCard-value">$1,000</div>
             </div>
-            <div style={styles.description}>
+            <div className="InfoCard-description">
               Rain garden replacing concrete — absorbs stormwater runoff and cools
               through evapotranspiration. Reduces flooding while creating green
               infrastructure.
             </div>
-            <button onClick={handleRealLifeView} disabled={loading} style={styles.actionButton}>
+            <button onClick={handleRealLifeView} disabled={loading} className="InfoCard-actionBtn">
               {loading ? "🔄 Generating..." : "📸 Real Life View"}
             </button>
           </>
@@ -131,25 +132,25 @@ export default function InfoCard({ item, onClose }) {
       case "hotspot":
         return (
           <>
-            <div style={styles.header}>
-              <span style={styles.icon}>⚠️</span>
-              <h3 style={styles.title}>Red Zone Hotspot</h3>
+            <div className="InfoCard-header">
+              <span className="InfoCard-icon">⚠️</span>
+              <h3 className="InfoCard-title">Red Zone Hotspot</h3>
             </div>
-            <div style={styles.section}>
-              <div style={styles.label}>Temperature</div>
-              <div style={{ ...styles.value, color: "#ef4444" }}>
+            <div className="InfoCard-section">
+              <div className="InfoCard-label">Temperature</div>
+              <div className="InfoCard-value InfoCard-value--danger">
                 {item.temperature_c}°C
               </div>
             </div>
-            <div style={styles.section}>
-              <div style={styles.label}>Severity</div>
-              <div style={styles.value}>
+            <div className="InfoCard-section">
+              <div className="InfoCard-label">Severity</div>
+              <div className="InfoCard-value">
                 {item.severity?.toUpperCase() || "HIGH"}
               </div>
             </div>
-            <div style={styles.section}>
-              <div style={styles.label}>Type</div>
-              <div style={styles.value}>
+            <div className="InfoCard-section">
+              <div className="InfoCard-label">Type</div>
+              <div className="InfoCard-value">
                 {item.type === "parking"
                   ? "Parking Lot"
                   : item.type === "bus_stop"
@@ -159,55 +160,55 @@ export default function InfoCard({ item, onClose }) {
                   : "Walkway"}
               </div>
             </div>
-            <div style={styles.description}>{item.description}</div>
+            <div className="InfoCard-description">{item.description}</div>
           </>
         );
 
       case "suggestion":
         return (
           <>
-            <div style={styles.header}>
-              <span style={styles.icon}>💡</span>
-              <h3 style={styles.title}>Planting Suggestion</h3>
+            <div className="InfoCard-header">
+              <span className="InfoCard-icon">💡</span>
+              <h3 className="InfoCard-title">Planting Suggestion</h3>
             </div>
-            <div style={styles.section}>
-              <div style={styles.label}>Cooling Potential</div>
-              <div style={{ ...styles.value, color: "#4ade80" }}>
+            <div className="InfoCard-section">
+              <div className="InfoCard-label">Cooling Potential</div>
+              <div className="InfoCard-value InfoCard-value--success">
                 −{item.cooling_potential}°C
               </div>
             </div>
-            <div style={styles.section}>
-              <div style={styles.label}>Priority</div>
-              <div style={styles.value}>
+            <div className="InfoCard-section">
+              <div className="InfoCard-label">Priority</div>
+              <div className="InfoCard-value">
                 {item.priority === "high" ? "HIGH" : "MEDIUM"}
               </div>
             </div>
             {item.temperature_c && (
-              <div style={styles.section}>
-                <div style={styles.label}>Current Temperature</div>
-                <div style={styles.value}>{item.temperature_c}°C</div>
+              <div className="InfoCard-section">
+                <div className="InfoCard-label">Current Temperature</div>
+                <div className="InfoCard-value">{item.temperature_c}°C</div>
               </div>
             )}
-            <div style={styles.description}>{item.reason}</div>
+            <div className="InfoCard-description">{item.reason}</div>
           </>
         );
 
       case "vulnerability":
         return (
           <>
-            <div style={styles.header}>
-              <span style={styles.icon}>🛡️</span>
-              <h3 style={styles.title}>Vulnerable Area</h3>
+            <div className="InfoCard-header">
+              <span className="InfoCard-icon">🛡️</span>
+              <h3 className="InfoCard-title">Vulnerable Area</h3>
             </div>
-            <div style={styles.section}>
-              <div style={styles.label}>Location</div>
-              <div style={styles.value}>{item.label}</div>
+            <div className="InfoCard-section">
+              <div className="InfoCard-label">Location</div>
+              <div className="InfoCard-value">{item.label}</div>
             </div>
-            <div style={styles.section}>
-              <div style={styles.label}>Vulnerability Score</div>
+            <div className="InfoCard-section">
+              <div className="InfoCard-label">Vulnerability Score</div>
               <div
+                className="InfoCard-value"
                 style={{
-                  ...styles.value,
                   color:
                     item.vulnerability_score >= 0.7
                       ? "#9333ea"
@@ -219,36 +220,36 @@ export default function InfoCard({ item, onClose }) {
                 {(item.vulnerability_score * 100).toFixed(0)}%
               </div>
             </div>
-            <div style={styles.section}>
-              <div style={styles.label}>Population</div>
-              <div style={styles.value}>
+            <div className="InfoCard-section">
+              <div className="InfoCard-label">Population</div>
+              <div className="InfoCard-value">
                 {item.population?.toLocaleString() || "Unknown"}
               </div>
             </div>
-            <div style={styles.description}>{item.factors}</div>
+            <div className="InfoCard-description">{item.factors}</div>
           </>
         );
 
       case "heatmap":
         return (
           <>
-            <div style={styles.header}>
-              <span style={styles.icon}>🌡️</span>
-              <h3 style={styles.title}>Heat Map Layer</h3>
+            <div className="InfoCard-header">
+              <span className="InfoCard-icon">🌡️</span>
+              <h3 className="InfoCard-title">Heat Map Layer</h3>
             </div>
-            <div style={styles.section}>
-              <div style={styles.label}>Data Source</div>
-              <div style={styles.value}>Sentinel-2 Satellite</div>
+            <div className="InfoCard-section">
+              <div className="InfoCard-label">Data Source</div>
+              <div className="InfoCard-value">Sentinel-2 Satellite</div>
             </div>
-            <div style={styles.section}>
-              <div style={styles.label}>Resolution</div>
-              <div style={styles.value}>10-30 meters</div>
+            <div className="InfoCard-section">
+              <div className="InfoCard-label">Resolution</div>
+              <div className="InfoCard-value">10-30 meters</div>
             </div>
-            <div style={styles.section}>
-              <div style={styles.label}>Temperature Range</div>
-              <div style={styles.value}>25°C - 55°C</div>
+            <div className="InfoCard-section">
+              <div className="InfoCard-label">Temperature Range</div>
+              <div className="InfoCard-value">25°C - 55°C</div>
             </div>
-            <div style={styles.description}>
+            <div className="InfoCard-description">
               Real-time Land Surface Temperature (LST) data from satellite imagery.
               The heatmap shows thermal patterns across the city, with red/orange areas
               indicating urban heat islands and blue/green areas showing cooler zones.
@@ -260,11 +261,11 @@ export default function InfoCard({ item, onClose }) {
       default:
         return (
           <>
-            <div style={styles.header}>
-              <span style={styles.icon}>ℹ️</span>
-              <h3 style={styles.title}>Map Information</h3>
+            <div className="InfoCard-header">
+              <span className="InfoCard-icon">ℹ️</span>
+              <h3 className="InfoCard-title">Map Information</h3>
             </div>
-            <div style={styles.description}>
+            <div className="InfoCard-description">
               Click on trees, buildings, hotspots, or suggestions to see detailed information.
               Use the toolbar to switch between different visualization layers and planting modes.
             </div>
@@ -275,49 +276,49 @@ export default function InfoCard({ item, onClose }) {
 
   return (
     <>
-      <div style={styles.container}>
-        <button onClick={onClose} style={styles.closeButton} aria-label="Close">
+      <div className="InfoCard">
+        <button onClick={onClose} className="InfoCard-close" aria-label="Close">
           ×
         </button>
         {renderContent()}
         {error && (
-          <div style={styles.error}>{error}</div>
+          <div className="InfoCard-error">{error}</div>
         )}
       </div>
 
       {/* Real Life View Modal */}
       {realLifeView && (
-        <div style={styles.modalOverlay} onClick={() => setRealLifeView(null)}>
-          <div style={styles.modalPanel} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.modalHeader}>
-              <span style={styles.modalTitle}>📸 Real Life View</span>
-              <button onClick={() => setRealLifeView(null)} style={styles.modalClose}>
+        <div className="InfoCard-modalOverlay" onClick={() => setRealLifeView(null)}>
+          <div className="InfoCard-modalPanel" onClick={(e) => e.stopPropagation()}>
+            <div className="InfoCard-modalHeader">
+              <span className="InfoCard-modalTitle">📸 Real Life View</span>
+              <button onClick={() => setRealLifeView(null)} className="InfoCard-modalClose">
                 ✕
               </button>
             </div>
             
-            <div style={styles.splitView}>
-              <div style={styles.imageContainer}>
-                <div style={styles.labelBefore}>BEFORE</div>
+            <div className="InfoCard-splitView">
+              <div className="InfoCard-imageContainer">
+                <div className="InfoCard-labelBefore">BEFORE</div>
                 <img
                   src={`data:image/jpeg;base64,${realLifeView.before_image}`}
                   alt="Current location"
-                  style={styles.viewImage}
+                  className="InfoCard-viewImage"
                 />
               </div>
-              <div style={styles.imageContainer}>
-                <div style={styles.labelAfter}>
+              <div className="InfoCard-imageContainer">
+                <div className="InfoCard-labelAfter">
                   AFTER — {item.type === "tree" ? `${(item.species || "Maple").toUpperCase()} TREE` : item.type.toUpperCase()} ADDED
                 </div>
                 <img
                   src={`data:image/jpeg;base64,${realLifeView.after_image}`}
                   alt="With intervention"
-                  style={styles.viewImage}
+                  className="InfoCard-viewImage"
                 />
               </div>
             </div>
             
-            <div style={styles.modalFooter}>
+            <div className="InfoCard-modalFooter">
               AI-generated visualization of this {item.type} at its exact coordinates
             </div>
           </div>
@@ -327,193 +328,3 @@ export default function InfoCard({ item, onClose }) {
   );
 }
 
-const styles = {
-  container: {
-    position: "absolute",
-    top: "80px",
-    right: "20px",
-    width: "320px",
-    maxHeight: "500px",
-    background: "linear-gradient(135deg, rgba(20,30,25,0.98) 0%, rgba(25,35,30,0.98) 100%)",
-    backdropFilter: "blur(12px)",
-    border: "1px solid rgba(74,222,128,0.3)",
-    borderRadius: "16px",
-    padding: "20px",
-    boxShadow: "0 8px 32px rgba(0,0,0,0.4), 0 0 20px rgba(74,222,128,0.1)",
-    zIndex: 200, // Above legend (150)
-    color: "#e5e5e5",
-    overflowY: "auto",
-  },
-  closeButton: {
-    position: "absolute",
-    top: "12px",
-    right: "12px",
-    background: "rgba(239,68,68,0.2)", // Slight red tint for visibility
-    border: "1px solid rgba(239,68,68,0.4)",
-    borderRadius: "8px",
-    width: "32px",
-    height: "32px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    color: "#e5e5e5",
-    fontSize: "24px",
-    fontWeight: "300",
-    lineHeight: "1",
-    transition: "all 0.2s",
-  },
-  header: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    marginBottom: "20px",
-    paddingBottom: "16px",
-    borderBottom: "1px solid rgba(74,222,128,0.2)",
-  },
-  icon: {
-    fontSize: "2rem",
-  },
-  title: {
-    fontSize: "1.25rem",
-    fontWeight: 700,
-    color: "#4ade80",
-    margin: 0,
-  },
-  section: {
-    marginBottom: "12px",
-  },
-  label: {
-    fontSize: "0.75rem",
-    color: "#888",
-    textTransform: "uppercase",
-    letterSpacing: "0.5px",
-    marginBottom: "4px",
-  },
-  value: {
-    fontSize: "1rem",
-    fontWeight: 600,
-    color: "#e5e5e5",
-  },
-  description: {
-    fontSize: "0.875rem",
-    lineHeight: 1.6,
-    color: "#bbb",
-    marginTop: "16px",
-    paddingTop: "16px",
-    borderTop: "1px solid rgba(74,222,128,0.1)",
-  },
-  actionButton: {
-    width: "100%",
-    marginTop: "16px",
-    padding: "12px",
-    background: "linear-gradient(135deg, #4ade80 0%, #22c55e 100%)",
-    color: "#000",
-    border: "none",
-    borderRadius: "8px",
-    fontSize: "0.875rem",
-    fontWeight: 700,
-    cursor: "pointer",
-    transition: "all 0.2s",
-    boxShadow: "0 2px 8px rgba(74,222,128,0.3)",
-  },
-  error: {
-    marginTop: "12px",
-    padding: "10px",
-    background: "rgba(239,68,68,0.1)",
-    border: "1px solid rgba(239,68,68,0.3)",
-    borderRadius: "6px",
-    color: "#ef4444",
-    fontSize: "0.8rem",
-  },
-  modalOverlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,0.9)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 2000,
-  },
-  modalPanel: {
-    background: "linear-gradient(135deg, rgba(20,30,25,0.98) 0%, rgba(25,35,30,0.98) 100%)",
-    borderRadius: "16px",
-    border: "1px solid rgba(74,222,128,0.3)",
-    maxWidth: "95vw",
-    maxHeight: "95vh",
-    overflow: "hidden",
-    boxShadow: "0 8px 40px rgba(0,0,0,0.8)",
-  },
-  modalHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "16px 24px",
-    borderBottom: "1px solid rgba(74,222,128,0.2)",
-  },
-  modalTitle: {
-    fontSize: "1.2rem",
-    fontWeight: 700,
-    color: "#4ade80",
-  },
-  modalClose: {
-    background: "rgba(255,255,255,0.1)",
-    border: "1px solid rgba(255,255,255,0.2)",
-    borderRadius: "8px",
-    width: "36px",
-    height: "36px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    color: "#e5e5e5",
-    fontSize: "24px",
-    lineHeight: "1",
-  },
-  splitView: {
-    display: "flex",
-    gap: "2px",
-  },
-  imageContainer: {
-    flex: 1,
-    position: "relative",
-  },
-  viewImage: {
-    width: "100%",
-    height: "auto",
-    display: "block",
-  },
-  labelBefore: {
-    position: "absolute",
-    top: "12px",
-    left: "12px",
-    background: "rgba(239,68,68,0.95)",
-    color: "#fff",
-    padding: "8px 14px",
-    borderRadius: "8px",
-    fontSize: "0.8rem",
-    fontWeight: 700,
-    zIndex: 10,
-    boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-  },
-  labelAfter: {
-    position: "absolute",
-    top: "12px",
-    left: "12px",
-    background: "rgba(74,222,128,0.95)",
-    color: "#000",
-    padding: "8px 14px",
-    borderRadius: "8px",
-    fontSize: "0.8rem",
-    fontWeight: 700,
-    zIndex: 10,
-    boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-  },
-  modalFooter: {
-    padding: "14px 24px",
-    borderTop: "1px solid rgba(74,222,128,0.1)",
-    color: "#999",
-    fontSize: "0.85rem",
-    textAlign: "center",
-  },
-};

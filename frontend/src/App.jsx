@@ -686,21 +686,21 @@ function App() {
 
   if (!GOOGLE_MAPS_API_KEY) {
     return (
-      <div style={styles.setupScreen}>
-        <div style={styles.setupCard}>
+      <div className="App-setupScreen">
+        <div className="App-setupCard">
           <span style={{ fontSize: "2.5rem" }}>🌿</span>
-          <h1 style={styles.setupTitle}>ReLeaf Setup</h1>
-          <p style={styles.setupText}>
+          <h1 className="App-setupTitle">ReLeaf Setup</h1>
+          <p className="App-setupText">
             Add your Google Maps API key to <code>frontend/.env</code>:
           </p>
-          <pre style={styles.setupCode}>
+          <pre className="App-setupCode">
             VITE_GOOGLE_MAPS_API_KEY=your_key_here
           </pre>
-          <p style={styles.setupText}>
+          <p className="App-setupText">
             Required APIs: <strong>Maps JavaScript API</strong>,{" "}
             <strong>Places API</strong>, <strong>Maps Static API</strong>
           </p>
-          <p style={styles.setupHint}>
+          <p className="App-setupHint">
             Then restart the dev server with <code>npm run dev</code>
           </p>
         </div>
@@ -713,7 +713,7 @@ function App() {
 
   return (
     <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
-      <div style={styles.app}>
+      <div className="App">
         {/* Header with Integrated Navigation & Search */}
         <HeaderBar
           activeTab={activeTab}
@@ -739,9 +739,9 @@ function App() {
         />
 
         {/* Main content area */}
-        <div style={styles.mainContent}>
+        <div className="App-mainContent">
           {/* Left rail: sidebar + ROI/Simulation (when open) */}
-          <div style={styles.leftRail}>
+          <div className="App-leftRail">
             <SidebarPanel
             hotspots={hotspots}
             simulation={simulation}
@@ -774,14 +774,14 @@ function App() {
 
             {/* ROI / Simulation — immediately right of sidebar */}
             {(roiOpen || simulationOpen) && (
-              <div style={styles.resultsPanel}>
+              <div className="App-resultsPanel">
                 {roiOpen && (
                   <ROIPanel
                     interventions={interventions}
                     isOpen={roiOpen}
                     onClose={() => setRoiOpen(false)}
                     onGenerateProposal={handleGrantProposal}
-                    style={styles.roiPanelInline}
+                    className="ROIPanel--inline"
                   />
                 )}
                 {simulationOpen && (
@@ -790,7 +790,7 @@ function App() {
                     isOpen={simulationOpen}
                     onClose={() => setSimulationOpen(false)}
                     interventionCount={interventionCount}
-                    style={styles.simulationPanelInline}
+                    className="SimulationPanel--inline"
                   />
                 )}
               </div>
@@ -798,7 +798,7 @@ function App() {
           </div>
 
           {/* Map + overlays */}
-          <div style={styles.mapArea}>
+          <div className="App-mapArea">
             <MapView
               ref={mapRef}
               mode={mode}
@@ -847,20 +847,9 @@ function App() {
             )}
 
             {/* Right Side Column (Heat Risk Zones + Legend + ROI/Simulation) */}
-            <div
-              style={{
-                position: "absolute",
-                bottom: "24px",
-                right: "70px",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-end",
-                pointerEvents: "none",
-                zIndex: 1000,
-              }}
-            >
+            <div className="App-legendColumn">
           {/* Heat Map Legend — bottom right */}
-          <div style={{ pointerEvents: "auto" }}>
+          <div className="App-legendColumn-inner">
             <HeatmapLegend
               activeLayer={activeDataLayer}
               onInfoClick={handleItemClick}
@@ -907,7 +896,7 @@ function App() {
 
         {/* Login Modal (anonymous-first: sign in to save) */}
         {showLoginModal && (
-          <div style={styles.modalOverlay}>
+          <div className="App-modalOverlay">
         <LoginScreen
           onSuccess={() => {
             setShowLoginModal(false);
@@ -923,7 +912,7 @@ function App() {
 
         {/* Project Dashboard */}
         {showDashboard && (
-          <div style={styles.modalOverlay}>
+          <div className="App-modalOverlay">
             <ProjectDashboard
               onSelectProject={handleSelectProject}
               onCreateNew={handleCreateNewProject}
@@ -931,7 +920,7 @@ function App() {
             />
             <button
               onClick={() => setShowDashboard(false)}
-              style={styles.closeDashboard}
+              className="App-closeDashboard"
             >
               ✕ Close
             </button>
@@ -952,136 +941,5 @@ function App() {
     </APIProvider>
   );
 }
-
-const styles = {
-  app: {
-    width: "100vw",
-    height: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    overflow: "hidden",
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-  },
-  mainContent: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "row",
-    minHeight: 0,
-    position: "relative",
-  },
-  leftRail: {
-    display: "flex",
-    flexDirection: "row",
-    flexShrink: 0,
-  },
-  resultsPanel: {
-    width: "340px",
-    flexShrink: 0,
-    display: "flex",
-    flexDirection: "column",
-    alignSelf: "stretch",
-    minHeight: 0,
-    background: "linear-gradient(135deg, rgba(20, 40, 32, 0.98) 0%, rgba(26, 45, 38, 0.98) 100%)",
-    borderRight: "1px solid rgba(74, 222, 128, 0.2)",
-  },
-  roiPanelInline: {
-    position: "static",
-    width: "100%",
-    height: "100%",
-    minHeight: 0,
-    maxHeight: "none",
-    border: "none",
-    borderRadius: 0,
-    boxShadow: "none",
-    display: "flex",
-    flexDirection: "column",
-  },
-  simulationPanelInline: {
-    position: "static",
-    width: "100%",
-    height: "100%",
-    minHeight: 0,
-    marginTop: 0,
-    display: "flex",
-    flexDirection: "column",
-  },
-  leftPanel: {
-    padding: "16px 0 16px 16px",
-    overflowY: "auto",
-  },
-  mapArea: {
-    flex: 1,
-    position: "relative",
-    minWidth: 0,
-  },
-  setupScreen: {
-    width: "100vw",
-    height: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "#0a0a1a",
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-  },
-  setupCard: {
-    background: "#1a1a2e",
-    borderRadius: "16px",
-    padding: "40px",
-    textAlign: "center",
-    maxWidth: "480px",
-    border: "1px solid rgba(255,255,255,0.1)",
-  },
-  setupTitle: {
-    color: "#4ade80",
-    fontSize: "1.5rem",
-    marginTop: "12px",
-    marginBottom: "16px",
-  },
-  setupText: {
-    color: "#bbb",
-    fontSize: "0.9rem",
-    lineHeight: 1.6,
-    marginBottom: "12px",
-  },
-  setupCode: {
-    background: "rgba(255,255,255,0.06)",
-    color: "#4ade80",
-    padding: "12px 16px",
-    borderRadius: "8px",
-    fontSize: "0.82rem",
-    textAlign: "left",
-    marginBottom: "16px",
-    border: "1px solid rgba(74,222,128,0.2)",
-    overflowX: "auto",
-  },
-  setupHint: {
-    color: "#888",
-    fontSize: "0.82rem",
-  },
-  modalOverlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,0.7)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 9999,
-  },
-  closeDashboard: {
-    position: "fixed",
-    top: "24px",
-    right: "24px",
-    padding: "10px 20px",
-    background: "rgba(20, 40, 32, 0.95)",
-    border: "1px solid rgba(74, 222, 128, 0.3)",
-    borderRadius: "8px",
-    color: "#4ade80",
-    fontSize: "0.9rem",
-    cursor: "pointer",
-    zIndex: 10000,
-  },
-};
 
 export default App;

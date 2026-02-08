@@ -1,4 +1,5 @@
 import SpeciesSelector from "./SpeciesSelector";
+import "./Toolbar.css";
 
 /**
  * Left-side floating toolbar.
@@ -38,7 +39,7 @@ export default function Toolbar({
   const isIntervention = mode === "tree" || mode === "cool_roof" || mode === "bio_swale";
 
   return (
-    <div style={{ ...styles.container, ...(embedded ? styles.containerEmbedded : {}) }}>
+    <div className={`Toolbar ${embedded ? "Toolbar--embedded" : ""}`}>
       {/* Mode */}
       <Section>
         <SectionLabel>MODE</SectionLabel>
@@ -94,15 +95,15 @@ export default function Toolbar({
       {/* Interventions count + undo/clear */}
       {interventionCount > 0 && (
         <Section>
-          <div style={styles.treeRow}>
+          <div className="Toolbar-treeRow">
             <span style={{ fontSize: "0.85rem" }}>🌳</span>
-            <span style={styles.treeCount}>{interventionCount}</span>
-            <span style={styles.treeLabel}>placed</span>
-            <div style={{ flex: 1 }} />
-            <button onClick={onUndo} style={styles.iconBtn} title="Undo">
+            <span className="Toolbar-treeCount">{interventionCount}</span>
+            <span className="Toolbar-treeLabel">placed</span>
+            <div className="Toolbar-spacer" />
+            <button onClick={onUndo} className="Toolbar-iconBtn" title="Undo">
               ↩
             </button>
-            <button onClick={onClear} style={styles.iconBtn} title="Clear">
+            <button onClick={onClear} className="Toolbar-iconBtn" title="Clear">
               ✕
             </button>
           </div>
@@ -178,23 +179,19 @@ export default function Toolbar({
 // ─── Sub-components ──────────────────────────────────────────
 
 function Section({ children }) {
-  return <div style={styles.section}>{children}</div>;
+  return <div className="Toolbar-section">{children}</div>;
 }
 
 function SectionLabel({ children }) {
-  return <span style={styles.sectionLabel}>{children}</span>;
+  return <span className="Toolbar-sectionLabel">{children}</span>;
 }
 
 function ModeBtn({ active, onClick, icon, label, activeColor = "#60a5fa" }) {
   return (
     <button
       onClick={onClick}
-      style={{
-        ...styles.modeBtn,
-        ...(active
-          ? { background: `${activeColor}18`, color: activeColor }
-          : {}),
-      }}
+      className="Toolbar-modeBtn"
+      style={active ? { background: `${activeColor}18`, color: activeColor } : undefined}
     >
       {icon} {label}
     </button>
@@ -205,27 +202,22 @@ function RadioLayerToggle({ active, onClick, color, label }) {
   return (
     <button
       onClick={onClick}
-      style={{
-        ...styles.layerBtn,
-        ...(active
+      className="Toolbar-layerBtn"
+      style={
+        active
           ? { background: `${color}15`, color, borderColor: `${color}33` }
-          : { borderColor: "transparent" }),
-      }}
+          : { borderColor: "transparent" }
+      }
     >
       <span
+        className="Toolbar-radio"
         style={{
-          ...styles.radio,
           borderColor: active ? color : "rgba(255,255,255,0.15)",
           background: active ? "transparent" : "rgba(255,255,255,0.03)",
         }}
       >
         {active && (
-          <span
-            style={{
-              ...styles.radioDot,
-              background: color,
-            }}
-          />
+          <span className="Toolbar-radioDot" style={{ background: color }} />
         )}
       </span>
       {label}
@@ -237,145 +229,9 @@ function ActionBtn({ active, onClick, icon, label }) {
   return (
     <button
       onClick={onClick}
-      style={{
-        ...styles.actionItemBtn,
-        ...(active
-          ? {
-              background: "rgba(74,222,128,0.15)",
-              color: "#4ade80",
-            }
-          : {}),
-      }}
+      className={`Toolbar-actionItemBtn ${active ? "is-active" : ""}`}
     >
       {icon} {label}
     </button>
   );
 }
-
-// ─── Styles ──────────────────────────────────────────────────
-
-const styles = {
-  container: {
-    position: "absolute",
-    top: "16px",
-    left: "16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-    zIndex: 100,
-    width: "190px",
-    maxHeight: "calc(100vh - 32px)",
-    overflowY: "auto",
-    overflowX: "hidden",
-  },
-  containerEmbedded: {
-    position: "static",
-    width: "100%",
-    maxHeight: "none",
-  },
-  section: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "1px",
-    background: "linear-gradient(135deg, rgba(20,35,30,0.92) 0%, rgba(26,40,35,0.92) 100%)",
-    padding: "8px 6px",
-    borderRadius: "12px",
-    border: "1px solid rgba(74,222,128,0.15)",
-    backdropFilter: "blur(16px)",
-  },
-  sectionLabel: {
-    color: "#4ade80",
-    fontSize: "0.58rem",
-    fontWeight: 700,
-    letterSpacing: "1.2px",
-    padding: "0 8px 4px",
-    opacity: 0.7,
-  },
-  modeBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    padding: "7px 10px",
-    background: "transparent",
-    color: "#888",
-    border: "none",
-    borderRadius: "8px",
-    fontSize: "0.8rem",
-    fontWeight: 600,
-    cursor: "pointer",
-    textAlign: "left",
-    transition: "all 0.15s",
-    outline: "none",
-  },
-  layerBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "6px 10px",
-    background: "transparent",
-    color: "#888",
-    border: "1px solid transparent",
-    borderRadius: "7px",
-    fontSize: "0.76rem",
-    fontWeight: 600,
-    cursor: "pointer",
-    textAlign: "left",
-    transition: "all 0.15s",
-    whiteSpace: "nowrap",
-    outline: "none",
-  },
-  radio: {
-    width: "14px",
-    height: "14px",
-    borderRadius: "50%",
-    border: "2px solid",
-    flexShrink: 0,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    transition: "all 0.2s",
-  },
-  radioDot: {
-    width: "6px",
-    height: "6px",
-    borderRadius: "50%",
-  },
-  treeRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    padding: "4px 8px",
-  },
-  treeCount: { color: "#4ade80", fontWeight: 700, fontSize: "0.95rem" },
-  treeLabel: { color: "#888", fontSize: "0.75rem" },
-  iconBtn: {
-    width: "26px",
-    height: "26px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "rgba(255,255,255,0.08)",
-    color: "#aaa",
-    border: "none",
-    borderRadius: "6px",
-    fontSize: "0.75rem",
-    cursor: "pointer",
-    outline: "none",
-  },
-  actionItemBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    padding: "6px 10px",
-    background: "transparent",
-    color: "#888",
-    border: "none",
-    borderRadius: "7px",
-    fontSize: "0.76rem",
-    fontWeight: 600,
-    cursor: "pointer",
-    textAlign: "left",
-    transition: "all 0.15s",
-    outline: "none",
-  },
-};

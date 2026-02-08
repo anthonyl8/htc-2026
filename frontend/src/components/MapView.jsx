@@ -18,6 +18,7 @@ import {
 import { LightingEffect, AmbientLight, _SunLight as SunLight } from "@deck.gl/core";
 import { getTemperature } from "../services/api";
 import { useHeatmapLayer } from "./HeatmapOverlay";
+import "./MapView.css";
 
 const GOOGLE_MAPS_MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || "";
 
@@ -753,7 +754,7 @@ const MapView = forwardRef(function MapView(
   }
 
   return (
-    <div id="map-container" style={styles.container}>
+    <div id="map-container" className="MapView">
       <Map
         defaultCenter={{ lat: 49.2827, lng: -123.1207 }}
         defaultZoom={15}
@@ -769,22 +770,22 @@ const MapView = forwardRef(function MapView(
 
       {/* Mode indicators */}
       {mode === "tree" && (
-        <div style={styles.modeIndicator}>
+        <div className="MapView-modeIndicator">
           🌳 Click anywhere to plant a tree
         </div>
       )}
       {mode === "cool_roof" && (
-        <div style={{ ...styles.modeIndicator, background: "rgba(150,190,255,0.9)" }}>
+        <div className="MapView-modeIndicator MapView-modeIndicator--coolRoof">
           🏠 Click a building to apply Cool Roof
         </div>
       )}
       {mode === "bio_swale" && (
-        <div style={{ ...styles.modeIndicator, background: "rgba(56,189,248,0.9)" }}>
+        <div className="MapView-modeIndicator MapView-modeIndicator--bioSwale">
           💧 Click to place a Bio-Swale
         </div>
       )}
       {mode === "streetview" && (
-        <div style={{ ...styles.modeIndicator, background: "rgba(251,191,36,0.9)" }}>
+        <div className="MapView-modeIndicator MapView-modeIndicator--streetview">
           📍 Click a location to open Street View
         </div>
       )}
@@ -792,8 +793,8 @@ const MapView = forwardRef(function MapView(
       {/* Tooltip */}
       {tooltip && (
         <div
+          className="MapView-tooltip"
           style={{
-            ...styles.tooltip,
             left: tooltip.x + 12,
             top: tooltip.y - 8,
           }}
@@ -806,46 +807,3 @@ const MapView = forwardRef(function MapView(
 });
 
 export default MapView;
-
-const styles = {
-  container: {
-    width: "100%",
-    height: "100%",
-    position: "relative",
-    background: "#0a0a1a",
-  },
-  modeIndicator: {
-    position: "absolute",
-    bottom: "80px",
-    left: "50%",
-    transform: "translateX(-50%)",
-    background: "linear-gradient(135deg, #4ade80 0%, #22c55e 100%)",
-    color: "#000",
-    padding: "8px 20px",
-    borderRadius: "20px",
-    fontSize: "0.82rem",
-    fontWeight: 700,
-    pointerEvents: "none",
-    zIndex: 50,
-    boxShadow: "0 4px 16px rgba(74,222,128,0.4), 0 0 20px rgba(74,222,128,0.2)",
-    border: "1px solid rgba(255,255,255,0.3)",
-  },
-  tooltip: {
-    position: "absolute",
-    background: "linear-gradient(135deg, rgba(20,35,30,0.98) 0%, rgba(26,40,35,0.98) 100%)",
-    color: "#e5e5e5",
-    padding: "8px 14px",
-    borderRadius: "8px",
-    fontSize: "0.75rem",
-    fontWeight: 500,
-    maxWidth: "350px",
-    pointerEvents: "none",
-    zIndex: 200,
-    border: "1px solid rgba(74,222,128,0.3)",
-    boxShadow: "0 4px 16px rgba(74,222,128,0.2)",
-    lineHeight: 1.4,
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-  },
-};

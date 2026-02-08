@@ -1,0 +1,44 @@
+.StatsPanel {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--panel-bg);
+  padding: 10px 20px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-green-border);
+  backdrop-filter: blur(12px);
+  z-index: var(--z-stats);
+  box-shadow: var(--panel-shadow-sm);
+}
+
+.StatsPanel-divider {
+  width: 1px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 16px;
+}
+
+.StatsPanel-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+
+.StatsPanel-statLabel {
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.StatsPanel-statValue {
+  font-size: 1rem;
+  font-weight: 700;
+}
