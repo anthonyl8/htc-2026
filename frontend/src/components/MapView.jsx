@@ -97,6 +97,8 @@ const MapView = forwardRef(function MapView(
     suggestionsVisible,
     vulnerabilityData,
     vulnerabilityVisible,
+    equityData,
+    equityVisible,
     timeOfDay,
     onItemClick,
     hoverLocation,
@@ -599,6 +601,37 @@ const MapView = forwardRef(function MapView(
     ];
   }, [vulnerabilityVisible, vulnerabilityData]);
 
+  // Equity (Census Tracts) Layer
+  const equityLayer = useMemo(() => {
+    if (!equityVisible || !equityData?.features) return null;
+    return new PolygonLayer({
+      id: "equity-layer",
+      data: equityData.features,
+      getPolygon: d => d.geometry.coordinates,
+      getFillColor: d => d.properties.fillColor || [200, 200, 200, 100],
+      getLineColor: [255, 255, 255, 100],
+      getLineWidth: 2,
+      filled: true,
+      stroked: true,
+      lineWidthMinPixels: 1,
+      pickable: true,
+      autoHighlight: true,
+      highlightColor: [255, 255, 255, 50],
+      onHover: (info) => {
+        if (info.object) {
+          const p = info.object.properties;
+          setTooltip({
+            x: info.x,
+            y: info.y,
+            text: `📊 ${p.zone_type} | Avg Income: $${p.income.toLocaleString()} | Temp: ${p.temperature_c}°C`,
+          });
+        } else {
+          setTooltip(null);
+        }
+      },
+    });
+  }, [equityVisible, equityData]);
+
   // Combine all layers
   // Order matters: data layers first (bottom), user interventions last (top, click priority)
   const allLayers = useMemo(() => {
@@ -607,12 +640,12 @@ const MapView = forwardRef(function MapView(
       ...hotspotLayers,
       ...suggestionLayers,
       ...vulnerabilityLayers,
-      // User interventions (top - get click priority over data layers)
       ...enhancedTreeLayers,
       ...coolRoofLayers,
       ...bioSwaleLayers,
     ];
     if (heatmapLayer) layers.push(heatmapLayer);
+    if (equityLayer) layers.push(equityLayer); // Equity layer
     if (ghostLayer) layers.push(ghostLayer);
     return layers;
   }, [
@@ -623,6 +656,7 @@ const MapView = forwardRef(function MapView(
     suggestionLayers,
     vulnerabilityLayers,
     heatmapLayer,
+    equityLayer,
     ghostLayer,
   ]);
 

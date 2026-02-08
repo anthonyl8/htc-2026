@@ -7,6 +7,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from services.analysis import analysis_service
+from services.funding import funding_service
 
 router = APIRouter(prefix="/analysis", tags=["Analysis"])
 
@@ -66,6 +67,15 @@ async def get_vulnerability():
     Identifies hospitals, schools, senior facilities, and community centers.
     """
     return await analysis_service.get_vulnerability_data()
+
+
+@router.get("/equity")
+async def get_equity():
+    """
+    Get equity overlay data (synthetic Census Tracts).
+    Shows correlation between income and heat vulnerability.
+    """
+    return analysis_service.get_equity_data()
 
 
 # ─── Species & Intervention Types ────────────────────────────────
@@ -137,3 +147,29 @@ async def calculate_roi(request: ROIRequest):
             d["lon"] = item.lon
         items.append(d)
     return analysis_service.calculate_roi(items)
+
+
+@router.post("/grant")
+async def generate_grant(request: SimulateV2Request):
+    """
+    Generate a grant proposal based on the current simulation state.
+    Uses AI to write a persuasive application.
+    """
+    # 1. Run simulation to get latest metrics
+    items = []
+    for item in request.interventions:
+        d = {"type": item.type, "species": item.species}
+        if item.position and len(item.position) >= 2:
+            d["lon"] = item.position[0]
+            d["lat"] = item.position[1]
+        else:
+            d["lat"] = item.lat
+            d["lon"] = item.lon
+        items.append(d)
+    
+    simulation_data = analysis_service.simulate_cooling_v2(items)
+    
+    # 2. Generate grant text
+    proposal = funding_service.generate_grant_proposal(simulation_data)
+    
+    return {"proposal": proposal}

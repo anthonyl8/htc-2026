@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { calculateROI } from "../services/api";
+import { calculateROI, generateGrantProposal } from "../services/api";
 
 /**
  * Cooling ROI (Return on Investment) Dashboard.
@@ -8,9 +8,14 @@ import { calculateROI } from "../services/api";
 export default function ROIPanel({ interventions, isOpen, onClose }) {
   const [roi, setRoi] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [grantLoading, setGrantLoading] = useState(false);
+  const [grantText, setGrantText] = useState(null);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+        setGrantText(null); // Reset grant when closed
+        return;
+    }
     if (!interventions || interventions.length === 0) {
       setRoi(null);
       return;
@@ -22,6 +27,18 @@ export default function ROIPanel({ interventions, isOpen, onClose }) {
       .catch((err) => console.warn("ROI calc failed:", err))
       .finally(() => setLoading(false));
   }, [isOpen, interventions]);
+
+  const handleGenerateGrant = async () => {
+    setGrantLoading(true);
+    try {
+      const result = await generateGrantProposal(interventions);
+      setGrantText(result.proposal);
+    } catch (err) {
+      console.error("Grant generation failed:", err);
+    } finally {
+      setGrantLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -148,6 +165,37 @@ export default function ROIPanel({ interventions, isOpen, onClose }) {
               </div>
             </>
           )}
+
+          {/* Grant Automator */}
+          <div style={styles.grantSection}>
+            <div style={styles.sectionTitle}>📝 Grant Automator</div>
+            {!grantText ? (
+              <button 
+                onClick={handleGenerateGrant} 
+                disabled={grantLoading}
+                style={styles.grantBtn}
+              >
+                {grantLoading ? "Writing Proposal..." : "Generate FEMA Grant Proposal"}
+              </button>
+            ) : (
+              <div style={styles.grantResult}>
+                <textarea 
+                  readOnly 
+                  value={grantText} 
+                  style={styles.grantTextarea}
+                />
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(grantText);
+                    alert("Copied to clipboard!");
+                  }}
+                  style={styles.copyBtn}
+                >
+                  Copy to Clipboard
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -392,5 +440,47 @@ const styles = {
     fontSize: "0.9rem",
     color: "#fff",
     fontWeight: 700,
+  },
+  grantSection: {
+    marginTop: "16px",
+    paddingTop: "8px",
+    borderTop: "1px solid rgba(255,255,255,0.1)",
+  },
+  grantBtn: {
+    width: "100%",
+    padding: "10px",
+    background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+    color: "white",
+    border: "none",
+    borderRadius: "8px",
+    fontWeight: 600,
+    cursor: "pointer",
+    fontSize: "0.85rem",
+    boxShadow: "0 4px 12px rgba(59,130,246,0.3)",
+  },
+  grantResult: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  },
+  grantTextarea: {
+    width: "100%",
+    height: "150px",
+    background: "rgba(0,0,0,0.3)",
+    border: "1px solid rgba(255,255,255,0.1)",
+    borderRadius: "6px",
+    color: "#ddd",
+    fontSize: "0.75rem",
+    padding: "8px",
+    resize: "vertical",
+  },
+  copyBtn: {
+    padding: "6px",
+    background: "rgba(255,255,255,0.1)",
+    border: "1px solid rgba(255,255,255,0.2)",
+    color: "#fff",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontSize: "0.75rem",
   },
 };

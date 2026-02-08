@@ -4,6 +4,8 @@ Regional pricing, grant matching, carbon credits, property value impacts.
 """
 
 from typing import Literal
+from core.config import settings
+from google import genai
 
 # Regional cost multipliers (relative to baseline)
 REGIONAL_COSTS = {
@@ -62,6 +64,12 @@ FUNDING_SOURCES = {
 
 class FundingService:
     """Calculate realistic costs and identify funding sources."""
+
+    def __init__(self):
+        if settings.GEMINI_API_KEY:
+            self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        else:
+            self.client = None
 
     def get_realistic_costs(
         self, interventions: list[dict], region: str = "vancouver"
@@ -215,6 +223,84 @@ class FundingService:
         if rate == 0:
             return principal / years
         return principal * (rate * (1 + rate) ** years) / ((1 + rate) ** years - 1)
+
+    def generate_grant_proposal(self, simulation_data: dict) -> str:
+        """
+        Generate a professional grant proposal based on simulation metrics.
+        Uses Gemini if available, otherwise falls back to a template.
+        """
+        # Extract metrics
+        trees = simulation_data.get("trees_planted", 0)
+        temp_reduction = simulation_data.get("area_cooling_c", 0)
+        roi_data = simulation_data.get("roi", {})
+        cost = roi_data.get("total_cost", 0)
+        co2 = roi_data.get("co2_offset_kg", 0)
+        energy = roi_data.get("energy_saved_yearly", 0)
+        
+        # Funding details
+        funding = roi_data.get("funding", {})
+        grant_amount = 0
+        for source in funding.get("funding_sources", []):
+            if source["type"] == "grant":
+                grant_amount = source["amount"]
+                break
+        
+        # If Gemini is available, use it for a high-quality proposal
+        if self.client:
+            try:
+                prompt = f"""Write a professional 250-word grant application for the 'FEMA Building Resilient Infrastructure and Communities (BRIC)' fund.
+                
+                PROJECT METRICS:
+                - Intervention: Planted {trees} trees and installed green infrastructure in high-heat urban zones.
+                - Impact: Reduced neighborhood ambient temperature by {temp_reduction}°C.
+                - Environmental: Sequesters {co2} kg of CO2 annually.
+                - Economic: Saves residents ${energy}/year in cooling costs.
+                - Total Project Cost: ${cost:,.2f}
+                - Grant Request: ${grant_amount:,.2f} (matching funds secured from municipal budget).
+                
+                STRUCTURE:
+                1. Executive Summary: Urgent need to address urban heat island effect.
+                2. Project Description: Strategic placement of {trees} trees to maximize cooling.
+                3. Impact & Benefits: Quantified cooling and economic savings.
+                4. Budget & Funding: Request for matching funds to scale the pilot.
+                
+                Tone: Persuasive, data-driven, bureaucratic but urgent."""
+                
+                response = self.client.models.generate_content(
+                    model="gemini-2.0-flash",
+                    contents=prompt,
+                )
+                return response.text
+            except Exception as e:
+                print(f"[FundingService] Gemini grant generation failed: {e}")
+                # Fall through to template
+        
+        # Fallback Template
+        return f"""
+GRANT APPLICATION: URBAN HEAT RESILIENCE PILOT
+To: FEMA Building Resilient Infrastructure and Communities (BRIC)
+From: City Planning Department / ReLeaf Pilot Team
+
+1. EXECUTIVE SUMMARY
+We request funding to support a critical urban cooling initiative. Our city faces increasing risks from extreme heat events, which disproportionately affect vulnerable populations. This pilot project leverages data-driven "Digital Twin" modeling to target interventions where they are needed most.
+
+2. PROJECT DESCRIPTION
+Based on our ReLeaf simulation, we propose the immediate deployment of {trees} climate-resilient trees and associated green infrastructure. Sites have been selected using satellite thermal analysis to maximize cooling potential in identified "Red Zones" (surface temps > 45°C).
+
+3. ANTICIPATED IMPACT
+Our modeling predicts significant measurable benefits:
+- Temperature Reduction: An estimated drop of {temp_reduction}°C in the target area.
+- Carbon Sequestration: Removal of {co2} kg of CO2 annually.
+- Economic Relief: Projected energy savings of ${energy}/year for residents due to reduced air conditioning load.
+
+4. BUDGET & FUNDING
+Total Project Cost: ${cost:,.2f}
+Grant Request: ${grant_amount:,.2f}
+
+The municipality has committed matching funds to cover the remaining balance. This investment will not only lower immediate risks but also provide a scalable framework for city-wide adaptation.
+
+Submitted by ReLeaf Automator.
+"""
 
 
 # Singleton
