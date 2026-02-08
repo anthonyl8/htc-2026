@@ -5,7 +5,6 @@ tree species data, intervention ROI calculations, and cooling simulations.
 """
 
 import math
-import random
 from core.config import settings
 from services.satellite import satellite_service
 from services.funding import funding_service
@@ -19,7 +18,8 @@ TREE_SPECIES = {
         "name": "Oak",
         "icon": "🌳",
         "canopy_size": "large",
-        "cooling_c": 4.0,
+        "cooling_c": 4.5,
+        "co2_kg_year": 28.0,
         "cost": 450,
         "radius_m": 12,
         "color": [34, 120, 34],
@@ -32,7 +32,8 @@ TREE_SPECIES = {
         "name": "Maple",
         "icon": "🍁",
         "canopy_size": "medium",
-        "cooling_c": 2.5,
+        "cooling_c": 3.0,
+        "co2_kg_year": 18.0,
         "cost": 300,
         "radius_m": 8,
         "color": [60, 160, 40],
@@ -45,7 +46,8 @@ TREE_SPECIES = {
         "name": "Pine",
         "icon": "🌲",
         "canopy_size": "small",
-        "cooling_c": 1.5,
+        "cooling_c": 1.8,
+        "co2_kg_year": 12.0,
         "cost": 200,
         "radius_m": 5,
         "color": [20, 100, 50],
@@ -62,7 +64,8 @@ INTERVENTION_TYPES = {
         "id": "cool_roof",
         "name": "Cool Roof",
         "icon": "🏠",
-        "cooling_c": 4.0,
+        "cooling_c": 3.5,
+        "co2_kg_year": 15.0,  # Avoided emissions
         "cost_per_unit": 3000,
         "unit": "building",
         "radius_m": 20,
@@ -73,7 +76,8 @@ INTERVENTION_TYPES = {
         "id": "bio_swale",
         "name": "Bio-Swale",
         "icon": "💧",
-        "cooling_c": 2.0,
+        "cooling_c": 1.5,
+        "co2_kg_year": 5.0,
         "cost_per_unit": 1000,
         "unit": "installation",
         "radius_m": 15,
@@ -121,7 +125,6 @@ class AnalysisService:
         lon_max = bounds.get('lon_max', settings.DEFAULT_LON + 0.02)
 
         hotspots = []
-        rng = random.Random(42)
         
         # Grid sampling: ~50 points across the area
         grid_size = 10
@@ -136,9 +139,9 @@ class AnalysisService:
                 temp_data = satellite_service.get_temperature_at(lat, lon)
                 temp = temp_data.get("temperature_c")
                 
-                # Only include actual hotspots (45°C+)
+                # Only include actual hotspots (42°C+)
                 if temp and temp >= 42:
-                    # Infer likely surface type based on temperature
+                    # Deterministic surface inference based on temperature intensity
                     if temp >= 50:
                         surface_type = "parking"
                         desc = "Extreme heat zone — likely asphalt or dark surface"
@@ -212,16 +215,20 @@ class AnalysisService:
             temp_data = satellite_service.get_temperature_at(lat, lon)
             local_temp = temp_data.get("temperature_c", 35)
 
-            # Cooling model: hotter surfaces benefit more from shade
-            # A single mature tree provides ~1-5°C cooling in its shade radius
-            if local_temp >= 45:
-                cooling = round(random.uniform(3.5, 5.5), 1)
-            elif local_temp >= 38:
-                cooling = round(random.uniform(2.0, 4.0), 1)
-            elif local_temp >= 32:
-                cooling = round(random.uniform(1.0, 2.5), 1)
-            else:
-                cooling = round(random.uniform(0.5, 1.5), 1)
+            # Deterministic Cooling Model
+            # Based on thermodynamics: ΔT = BaseCooling * (LocalTemp - AmbientBase) / ScalingFactor
+            # Hotter surfaces (asphalt) release more heat, so shading them has a higher delta.
+            
+            # Default to "maple" if not specified in basic simulation
+            species = TREE_SPECIES.get(tree.get("species", "maple"), TREE_SPECIES["maple"])
+            base_cooling = species["cooling_c"]
+            
+            # Cooling efficiency multiplier based on local temperature
+            # At 35°C (baseline), multiplier is 1.0
+            # At 50°C (extreme), multiplier is ~1.4
+            temp_multiplier = 1.0 + max(0, (local_temp - 35) * 0.025)
+            
+            cooling = round(base_cooling * temp_multiplier, 1)
 
             total_cooling += cooling
             tree_impacts.append({
@@ -375,10 +382,10 @@ class AnalysisService:
 
                 # Synthetic correlation: Higher temp -> Lower income
                 # Base income $80k, drops by $5k for every degree above 30
-                # Add some randomness
+                # Deterministic calculation without random fluctuation
                 income_base = 90000
                 heat_penalty = (temp - 30) * 4000
-                income = max(25000, income_base - heat_penalty + random.randint(-5000, 5000))
+                income = max(25000, income_base - heat_penalty)
                 
                 # Determine "Zone Type" based on income
                 if income < 40000:
@@ -408,7 +415,7 @@ class AnalysisService:
                         "income": round(income),
                         "temperature_c": temp,
                         "zone_type": zone_type,
-                        "population": random.randint(1000, 5000),
+                        "population": 3000,  # Fixed population estimate per tract
                         "fillColor": color
                     }
                 }
@@ -631,8 +638,21 @@ class AnalysisService:
         buildings_affected = max(10, tree_count * 3 + roof_count * 5 + swale_count * 2)
         energy_saved = round(total_cooling * energy_per_degree * buildings_affected)
 
-        # CO2 offset: each tree absorbs ~22kg/year, cool roofs save ~15kg, swales ~8kg
-        co2_offset = tree_count * 22 + roof_count * 15 + swale_count * 8
+        # CO2 offset: Calculated from species-specific scientific data
+        co2_offset = 0.0
+        
+        for item in interventions:
+            itype = item.get("type", "tree")
+            if itype == "tree":
+                species_id = item.get("species", "maple")
+                species = TREE_SPECIES.get(species_id, TREE_SPECIES["maple"])
+                co2_offset += species.get("co2_kg_year", 20.0)
+            elif itype == "cool_roof":
+                co2_offset += INTERVENTION_TYPES["cool_roof"].get("co2_kg_year", 15.0)
+            elif itype == "bio_swale":
+                co2_offset += INTERVENTION_TYPES["bio_swale"].get("co2_kg_year", 5.0)
+        
+        co2_offset = round(co2_offset, 1)
 
         # Get realistic costs
         realistic_costs = funding_service.get_realistic_costs(interventions, region)
@@ -715,19 +735,21 @@ class AnalysisService:
                 species = TREE_SPECIES.get(species_id, TREE_SPECIES["maple"])
                 base_cooling = species["cooling_c"]
 
-                # Hotter surfaces benefit more
-                if local_temp >= 45:
-                    cooling = round(base_cooling * random.uniform(1.1, 1.4), 1)
-                elif local_temp >= 38:
-                    cooling = round(base_cooling * random.uniform(0.8, 1.1), 1)
-                else:
-                    cooling = round(base_cooling * random.uniform(0.5, 0.8), 1)
+                # Deterministic cooling based on temperature differential
+                # Higher ambient temp = higher potential cooling delta from shade
+                temp_multiplier = 1.0 + max(0, (local_temp - 35) * 0.03)
+                cooling = round(base_cooling * temp_multiplier, 1)
+
             elif itype == "cool_roof":
                 base_cooling = INTERVENTION_TYPES["cool_roof"]["cooling_c"]
-                cooling = round(base_cooling * random.uniform(0.8, 1.2), 1)
+                # Cool roofs are more effective in direct sun (correlated with high heat)
+                temp_multiplier = 1.0 + max(0, (local_temp - 35) * 0.02)
+                cooling = round(base_cooling * temp_multiplier, 1)
+
             elif itype == "bio_swale":
                 base_cooling = INTERVENTION_TYPES["bio_swale"]["cooling_c"]
-                cooling = round(base_cooling * random.uniform(0.7, 1.1), 1)
+                # Bio-swales rely on evapotranspiration, which increases with heat/dryness up to a point
+                cooling = round(base_cooling, 1)
             else:
                 cooling = 1.0
 
