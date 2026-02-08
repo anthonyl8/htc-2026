@@ -1,9 +1,10 @@
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, useState } from "react";
+import AIVisionPanel from "./AIVisionPanel";
 
 /**
  * Street View panel that opens when user clicks a location.
  * Uses native Google Maps Street View Service.
- * Standard 360° exploration without AI modifications.
+ * Now includes AI Vision mode for photorealistic future visualization.
  */
 export default function StreetViewPanel({
   isOpen,
@@ -16,6 +17,7 @@ export default function StreetViewPanel({
   const containerRef = useRef(null);
   const panoramaRef = useRef(null);
   const locationKeyRef = useRef(null);
+  const [aiMode, setAiMode] = useState(false);
 
   // Early returns AFTER hooks (rules of hooks)
   const locationKey = location ? `${location.lat.toFixed(6)},${location.lng.toFixed(6)}` : null;
@@ -48,8 +50,15 @@ export default function StreetViewPanel({
     }
   }, [location, activeDataLayer, layerData]);
 
+  // Reset AI mode when location changes or panel closes
+  useEffect(() => {
+    if (!isOpen) setAiMode(false);
+  }, [isOpen, locationKey]);
+
   // Initialize Street View ONLY when location changes
   useEffect(() => {
+    if (aiMode) return; // Don't init SV if in AI mode
+
     if (!isOpen || !containerRef.current || !locationKey || !location) {
       // Clear panorama when closed
       if (!isOpen && panoramaRef.current) {
@@ -163,12 +172,35 @@ export default function StreetViewPanel({
   // Guard: early return AFTER all hooks
   if (!isOpen || !location) return null;
 
+  if (aiMode) {
+    return (
+      <div style={styles.overlay}>
+        <div style={styles.panel}>
+          <AIVisionPanel
+            location={location}
+            type="tree"
+            species={nearbyTrees[0]?.species || "maple"}
+            onClose={() => setAiMode(false)}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={styles.overlay}>
       <div style={styles.panel}>
         {/* Header */}
         <div style={styles.header}>
-          <span style={styles.title}>🌍 Street View</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <span style={styles.title}>🌍 Street View</span>
+            <button 
+              onClick={() => setAiMode(true)}
+              style={styles.aiBtn}
+            >
+              ✨ Generate AI Vision
+            </button>
+          </div>
           <button onClick={onClose} style={styles.closeBtn}>
             ✕
           </button>
@@ -179,7 +211,7 @@ export default function StreetViewPanel({
           <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
 
           {/* Ghost Tree Markers Overlay */}
-          {nearbyTrees.length > 0 && panoramaRef.current && (
+          {!aiMode && nearbyTrees.length > 0 && panoramaRef.current && (
             <TreeMarkers
               trees={nearbyTrees}
               panorama={panoramaRef.current}
@@ -188,7 +220,7 @@ export default function StreetViewPanel({
           )}
 
           {/* Data Layer Indicator Overlay */}
-          {layerInfo && (
+          {!aiMode && layerInfo && (
             <div
               style={{
                 ...styles.layerOverlay,
@@ -210,7 +242,7 @@ export default function StreetViewPanel({
           )}
 
           {/* Tree Counter Badge */}
-          {nearbyTrees.length > 0 && (
+          {!aiMode && nearbyTrees.length > 0 && (
             <div style={styles.treeBadge}>
               🌳 {nearbyTrees.length} tree{nearbyTrees.length > 1 ? "s" : ""}{" "}
               planned nearby
@@ -579,5 +611,17 @@ const styles = {
     textAlign: "center",
     whiteSpace: "nowrap",
     boxShadow: "0 2px 8px rgba(74,222,128,0.3)",
+  },
+  aiBtn: {
+    background: "linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%)",
+    color: "#fff",
+    border: "none",
+    padding: "6px 12px",
+    borderRadius: "20px",
+    fontSize: "0.75rem",
+    fontWeight: 700,
+    cursor: "pointer",
+    boxShadow: "0 2px 8px rgba(168,85,247,0.4)",
+    transition: "transform 0.2s",
   },
 };

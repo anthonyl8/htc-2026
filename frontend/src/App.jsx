@@ -16,6 +16,7 @@ import {
   getHotspots,
   getSuggestions,
   getVulnerabilityData,
+  getEquityData,
   simulateCoolingV2,
   validateLocation,
 } from "./services/api";
@@ -41,6 +42,7 @@ function App() {
   const [suggestions, setSuggestions] = useState([]);
   const [originalSuggestions, setOriginalSuggestions] = useState([]);
   const [vulnerabilityData, setVulnerabilityData] = useState([]);
+  const [equityData, setEquityData] = useState(null);
   const [simulation, setSimulation] = useState(null);
 
   // Tree species
@@ -106,6 +108,10 @@ function App() {
     getVulnerabilityData()
       .then((data) => setVulnerabilityData(data))
       .catch((err) => console.error("[App] Vulnerability fetch failed:", err));
+
+    getEquityData()
+      .then((data) => setEquityData(data))
+      .catch((err) => console.error("[App] Equity fetch failed:", err));
   }, []);
 
   // ─── Re-simulate when interventions change ─────────────────
@@ -499,9 +505,11 @@ function App() {
           hotspotsVisible={activeDataLayer === "hotspots"}
           suggestionsVisible={activeDataLayer === "suggestions"}
           vulnerabilityVisible={activeDataLayer === "vulnerability"}
+          equityVisible={activeDataLayer === "equity"}
           hotspots={hotspots}
           suggestions={suggestions}
           vulnerabilityData={vulnerabilityData}
+          equityData={equityData}
           timeOfDay={timeOfDay}
           onItemClick={handleItemClick}
           // New Props for Ghost/Validation

@@ -143,6 +143,12 @@ export default function Toolbar({
           color="#a78bfa"
           label="Vulnerability"
         />
+        <RadioLayerToggle
+          active={activeDataLayer === "equity"}
+          onClick={() => handleLayerClick("equity")}
+          color="#60a5fa"
+          label="Equity (Income)"
+        />
       </Section>
 
       {/* Dashboard & Tools */}

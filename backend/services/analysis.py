@@ -332,7 +332,92 @@ class AnalysisService:
         self._suggestions_cache = suggestions
         return suggestions
 
-    # ─── Social Vulnerability ───────────────────────────────────────
+    # ─── Social Vulnerability & Equity ──────────────────────────────
+
+    def get_equity_data(self) -> dict:
+        """
+        Return synthetic equity data (Census Tracts) for the demo area.
+        Correlates low income with high heat to demonstrate climate injustice.
+        Returns a GeoJSON FeatureCollection.
+        """
+        bounds = satellite_service.get_bounds()
+        if not bounds:
+             # Fallback bounds if service not loaded
+            lat, lon = settings.DEFAULT_LAT, settings.DEFAULT_LON
+            bounds = {
+                "north": lat + 0.015,
+                "south": lat - 0.015,
+                "east": lon + 0.02,
+                "west": lon - 0.02,
+            }
+
+        features = []
+        
+        # Create a 4x4 grid of "Census Tracts"
+        rows, cols = 4, 4
+        lat_step = (bounds["north"] - bounds["south"]) / rows
+        lon_step = (bounds["east"] - bounds["west"]) / cols
+
+        for i in range(rows):
+            for j in range(cols):
+                # Calculate polygon corners
+                p_south = bounds["south"] + i * lat_step
+                p_north = p_south + lat_step
+                p_west = bounds["west"] + j * lon_step
+                p_east = p_west + lon_step
+                
+                # Center point for sampling heat
+                c_lat = (p_south + p_north) / 2
+                c_lon = (p_west + p_east) / 2
+                
+                temp_data = satellite_service.get_temperature_at(c_lat, c_lon)
+                temp = temp_data.get("temperature_c", 35)
+
+                # Synthetic correlation: Higher temp -> Lower income
+                # Base income $80k, drops by $5k for every degree above 30
+                # Add some randomness
+                income_base = 90000
+                heat_penalty = (temp - 30) * 4000
+                income = max(25000, income_base - heat_penalty + random.randint(-5000, 5000))
+                
+                # Determine "Zone Type" based on income
+                if income < 40000:
+                    zone_type = "Low Income"
+                    color = [255, 0, 0, 100] # Red
+                elif income < 70000:
+                    zone_type = "Middle Income"
+                    color = [255, 165, 0, 100] # Orange
+                else:
+                    zone_type = "High Income"
+                    color = [0, 255, 0, 100] # Green
+
+                feature = {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[
+                            [p_west, p_north],
+                            [p_east, p_north],
+                            [p_east, p_south],
+                            [p_west, p_south],
+                            [p_west, p_north]
+                        ]]
+                    },
+                    "properties": {
+                        "id": f"tract-{i}-{j}",
+                        "income": round(income),
+                        "temperature_c": temp,
+                        "zone_type": zone_type,
+                        "population": random.randint(1000, 5000),
+                        "fillColor": color
+                    }
+                }
+                features.append(feature)
+
+        return {
+            "type": "FeatureCollection",
+            "features": features
+        }
 
     async def get_vulnerability_data(self) -> list[dict]:
         """

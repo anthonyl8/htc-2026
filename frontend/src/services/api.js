@@ -46,6 +46,12 @@ export async function getVulnerabilityData() {
   return res.json();
 }
 
+export async function getEquityData() {
+  const res = await fetch(`${API_URL}/analysis/equity`);
+  if (!res.ok) throw new Error("Failed to fetch equity data");
+  return res.json();
+}
+
 // ─── Species & Interventions ──────────────────────────────────
 
 export async function getSpecies() {
@@ -116,6 +122,24 @@ export async function calculateROI(interventions) {
   return res.json();
 }
 
+export async function generateGrantProposal(interventions) {
+  const res = await fetch(`${API_URL}/analysis/grant`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      interventions: interventions.map((item) => ({
+        type: item.type || "tree",
+        species: item.species || null,
+        position: item.position || [item.lon || 0, item.lat || 0],
+        lat: item.lat || (item.position ? item.position[1] : 0),
+        lon: item.lon || (item.position ? item.position[0] : 0),
+      })),
+    }),
+  });
+  if (!res.ok) throw new Error("Failed to generate grant proposal");
+  return res.json();
+}
+
 // ─── Street View AI ──────────────────────────────────────────────
 
 /**
@@ -151,4 +175,3 @@ export async function validateLocation(type, lat, lon) {
   if (!res.ok) throw new Error("Failed to validate location");
   return res.json();
 }
-
