@@ -60,6 +60,11 @@ function App() {
   // Selected item for info card
   const [selectedItem, setSelectedItem] = useState(null);
 
+  // Hover & Validation State (Minecraft-style placement)
+  const [hoverLocation, setHoverLocation] = useState(null);
+  const [validationStatus, setValidationStatus] = useState(null);
+  const validationTimerRef = useRef(null);
+
   const {
     interventions,
     trees,
@@ -160,16 +165,64 @@ function App() {
 
   // ─── Handlers ──────────────────────────────────────────────
 
+  const handleHover = useCallback((location) => {
+    setHoverLocation(location);
+
+    if (!location) {
+      setValidationStatus(null);
+      return;
+    }
+
+    // Reset to loading state immediately on move
+    setValidationStatus((prev) => prev?.loading ? prev : { loading: true });
+
+    // Clear previous timer
+    if (validationTimerRef.current) clearTimeout(validationTimerRef.current);
+
+    // Debounce validation
+    validationTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await validateLocation(mode, location.lat, location.lng);
+        setValidationStatus({ valid: res.valid, loading: false, reason: res.reason, ...res });
+      } catch (err) {
+        setValidationStatus({ valid: true, loading: false }); // Fallback
+      }
+    }, 200);
+  }, [mode]);
+
+  // Cleanup timer
+  useEffect(() => {
+    return () => {
+      if (validationTimerRef.current) clearTimeout(validationTimerRef.current);
+    };
+  }, []);
+
   const handleTreePlant = useCallback(
     async (coordinate) => {
       if (mode !== "tree") return;
       
       const [lon, lat] = coordinate;
+
+      // Use cached validation if available and location matches (approx)
+      let validation = null;
+      if (
+        validationStatus && 
+        !validationStatus.loading && 
+        hoverLocation && 
+        Math.abs(hoverLocation.lat - lat) < 0.0001 && 
+        Math.abs(hoverLocation.lng - lon) < 0.0001
+      ) {
+        validation = validationStatus;
+      } else {
+        // Fallback to fresh validation if not hovered
+        try {
+          validation = await validateLocation("tree", lat, lon);
+        } catch (err) {
+          console.warn("Validation failed:", err);
+        }
+      }
       
-      // Validate location before planting
-      try {
-        const validation = await validateLocation("tree", lat, lon);
-        
+      if (validation) {
         if (!validation.valid) {
           showToast(`Cannot plant tree: ${validation.reason}`, "error");
           return;
@@ -180,16 +233,13 @@ function App() {
         } else if (validation.confidence === "medium") {
           showToast(`Tree planted on ${validation.surface_type}`, "info");
         }
-        
-        addTree(coordinate, selectedSpecies);
-      } catch (err) {
-        console.warn("Validation failed:", err);
-        // Allow planting if validation service is down
-        addTree(coordinate, selectedSpecies);
-        showToast("Validation unavailable - tree planted anyway", "warning");
+      } else {
+         showToast("Validation unavailable - tree planted anyway", "warning");
       }
+      
+      addTree(coordinate, selectedSpecies);
     },
-    [mode, addTree, selectedSpecies, showToast]
+    [mode, addTree, selectedSpecies, showToast, validationStatus, hoverLocation]
   );
 
   const handleCoolRoofPlace = useCallback(
@@ -198,9 +248,24 @@ function App() {
       
       const [lon, lat] = coordinate;
       
-      try {
-        const validation = await validateLocation("cool_roof", lat, lon);
-        
+      let validation = null;
+      if (
+        validationStatus && 
+        !validationStatus.loading && 
+        hoverLocation && 
+        Math.abs(hoverLocation.lat - lat) < 0.0001 && 
+        Math.abs(hoverLocation.lng - lon) < 0.0001
+      ) {
+        validation = validationStatus;
+      } else {
+        try {
+          validation = await validateLocation("cool_roof", lat, lon);
+        } catch (err) {
+          console.warn("Validation failed:", err);
+        }
+      }
+      
+      if (validation) {
         if (!validation.valid) {
           showToast(`Cannot apply cool roof: ${validation.reason}`, "error");
           return;
@@ -209,15 +274,13 @@ function App() {
         if (validation.building_type && validation.building_type !== "unknown") {
           showToast(`Cool roof applied to ${validation.building_type}`, "info");
         }
-        
-        addCoolRoof(coordinate);
-      } catch (err) {
-        console.warn("Validation failed:", err);
-        addCoolRoof(coordinate);
+      } else {
         showToast("Validation unavailable - cool roof placed anyway", "warning");
       }
+      
+      addCoolRoof(coordinate);
     },
-    [mode, addCoolRoof, showToast]
+    [mode, addCoolRoof, showToast, validationStatus, hoverLocation]
   );
 
   const handleBioSwalePlace = useCallback(
@@ -226,20 +289,32 @@ function App() {
       
       const [lon, lat] = coordinate;
       
-      try {
-        const validation = await validateLocation("bio_swale", lat, lon);
-        
+      let validation = null;
+      if (
+        validationStatus && 
+        !validationStatus.loading && 
+        hoverLocation && 
+        Math.abs(hoverLocation.lat - lat) < 0.0001 && 
+        Math.abs(hoverLocation.lng - lon) < 0.0001
+      ) {
+        validation = validationStatus;
+      } else {
+        try {
+          validation = await validateLocation("bio_swale", lat, lon);
+        } catch (err) {
+          console.warn("Validation failed:", err);
+        }
+      }
+      
+      if (validation) {
         if (validation.near_feature) {
           showToast(`Bio-swale placed near ${validation.near_feature}`, "info");
         }
-        
-        addBioSwale(coordinate);
-      } catch (err) {
-        console.warn("Validation failed:", err);
-        addBioSwale(coordinate);
       }
+      
+      addBioSwale(coordinate);
     },
-    [mode, addBioSwale, showToast]
+    [mode, addBioSwale, showToast, validationStatus, hoverLocation]
   );
 
   const handleMapClick = useCallback(
@@ -429,6 +504,10 @@ function App() {
           vulnerabilityData={vulnerabilityData}
           timeOfDay={timeOfDay}
           onItemClick={handleItemClick}
+          // New Props for Ghost/Validation
+          hoverLocation={hoverLocation}
+          validationStatus={validationStatus}
+          onHover={handleHover}
         />
 
         {/* Search Bar — top center */}

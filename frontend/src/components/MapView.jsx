@@ -99,11 +99,16 @@ const MapView = forwardRef(function MapView(
     vulnerabilityVisible,
     timeOfDay,
     onItemClick,
+    hoverLocation,
+    validationStatus,
+    onHover,
   },
   ref
 ) {
   const [mapInstance, setMapInstance] = useState(null);
   const [tooltip, setTooltip] = useState(null);
+
+  const isIntervention = mode === "tree" || mode === "cool_roof" || mode === "bio_swale";
 
   // Expose flyTo + getViewport to parent
   useImperativeHandle(ref, () => ({
@@ -154,6 +159,60 @@ const MapView = forwardRef(function MapView(
       return [];
     }
   }, [timeOfDay]);
+
+  // ─── Ghost Layer (Minecraft-style placement) ───────────────
+
+  const handleMouseMove = useCallback((e) => {
+    if (!isIntervention) {
+      if (onHover) onHover(null);
+      return;
+    }
+    
+    if (!e.detail?.latLng) return;
+    const lat = e.detail.latLng.lat;
+    const lng = e.detail.latLng.lng;
+    
+    if (onHover) onHover({ lat, lng });
+  }, [isIntervention, onHover]);
+
+  const ghostLayer = useMemo(() => {
+    if (!isIntervention || !hoverLocation) return null;
+
+    const { lat, lng } = hoverLocation;
+    
+    // Determine color
+    let color = [100, 200, 255, 100]; // Blue pending
+    let lineColor = [150, 220, 255, 150];
+    
+    if (validationStatus && !validationStatus.loading) {
+      if (validationStatus.valid) {
+        color = [50, 255, 50, 120]; // Green valid
+        lineColor = [100, 255, 100, 200];
+      } else {
+        color = [255, 50, 50, 120]; // Red invalid
+        lineColor = [255, 100, 100, 200];
+      }
+    }
+
+    const radius = mode === "tree" ? 8 : mode === "cool_roof" ? 20 : 15;
+
+    // We use a simple scatterplot for the ghost to represent the footprint
+    return new ScatterplotLayer({
+      id: "ghost-layer",
+      data: [{ position: [lng, lat] }],
+      getPosition: (d) => d.position,
+      getRadius: radius,
+      getFillColor: color,
+      getLineColor: lineColor,
+      lineWidthMinPixels: 2,
+      stroked: true,
+      filled: true,
+      radiusScale: 1,
+      radiusMinPixels: 5,
+      radiusMaxPixels: 50,
+      pickable: false, // Don't block clicks
+    });
+  }, [isIntervention, hoverLocation, validationStatus, mode]);
 
   // ─── Deck.gl layers ────────────────────────────────────────
 
@@ -554,6 +613,7 @@ const MapView = forwardRef(function MapView(
       ...bioSwaleLayers,
     ];
     if (heatmapLayer) layers.push(heatmapLayer);
+    if (ghostLayer) layers.push(ghostLayer);
     return layers;
   }, [
     enhancedTreeLayers,
@@ -563,6 +623,7 @@ const MapView = forwardRef(function MapView(
     suggestionLayers,
     vulnerabilityLayers,
     heatmapLayer,
+    ghostLayer,
   ]);
 
   // ─── Map click handler ─────────────────────────────────────
@@ -657,8 +718,6 @@ const MapView = forwardRef(function MapView(
     mapOptions.heading = 0;
   }
 
-  const isIntervention = mode === "tree" || mode === "cool_roof" || mode === "bio_swale";
-
   return (
     <div id="map-container" style={styles.container}>
       <Map
@@ -666,6 +725,7 @@ const MapView = forwardRef(function MapView(
         defaultZoom={15}
         {...mapOptions}
         onClick={handleMapClick}
+        onMouseMove={handleMouseMove}
         style={{ width: "100%", height: "100%" }}
         reuseMaps={true}
       >
