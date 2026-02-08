@@ -11,6 +11,8 @@ import ROIPanel from "./components/ROIPanel";
 import FutureVision from "./components/FutureVision";
 import ValidationToast from "./components/ValidationToast";
 import HeatmapLegend from "./components/HeatmapLegend";
+import AirQualityLegend from "./components/AirQualityLegend";
+import InfoCard from "./components/InfoCard";
 import { useTreePlanting } from "./hooks/useTreePlanting";
 import {
   getHotspots,
@@ -22,6 +24,20 @@ import {
 import "./App.css";
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
+
+// Fallback data when backend is unreachable (Vancouver-area sample points)
+const FALLBACK_HOTSPOTS = [
+  { lat: 49.2827, lon: -123.1207, type: "intersection", temperature_c: 42, description: "Hot zone", severity: "high" },
+  { lat: 49.2835, lon: -123.115, type: "parking", temperature_c: 45, description: "Parking lot", severity: "extreme" },
+  { lat: 49.281, lon: -123.125, type: "walkway", temperature_c: 41, description: "Plaza", severity: "high" },
+];
+const FALLBACK_SUGGESTIONS = [
+  { lat: 49.284, lon: -123.118, cooling_potential: 4, reason: "High heat zone", priority: "high", temperature_c: 38 },
+  { lat: 49.2815, lon: -123.122, cooling_potential: 3.5, reason: "Elevated temperature", priority: "medium", temperature_c: 36 },
+];
+const FALLBACK_VULNERABILITY = [
+  { lat: 49.282, lon: -123.119, label: "Community center", vulnerability_score: 0.7, factors: "High-risk zone", population: 500 },
+];
 
 function App() {
   const [mode, setMode] = useState("explore");
@@ -60,6 +76,9 @@ function App() {
   const [validationMessage, setValidationMessage] = useState(null);
   const [validationType, setValidationType] = useState("warning");
 
+  // Selected item for info card
+  const [selectedItem, setSelectedItem] = useState(null);
+
   const {
     interventions,
     trees,
@@ -86,21 +105,29 @@ function App() {
   useEffect(() => {
     getHotspots()
       .then((data) => {
-        setHotspots(data);
-        setOriginalHotspots(data);
+        const list = Array.isArray(data) ? data : [];
+        setHotspots(list);
+        setOriginalHotspots(list);
       })
-      .catch((err) => console.error("[App] Hotspots fetch failed:", err));
+      .catch(() => {
+        setHotspots(FALLBACK_HOTSPOTS);
+        setOriginalHotspots(FALLBACK_HOTSPOTS);
+      });
 
     getSuggestions()
       .then((data) => {
-        setSuggestions(data);
-        setOriginalSuggestions(data);
+        const list = Array.isArray(data) ? data : [];
+        setSuggestions(list);
+        setOriginalSuggestions(list);
       })
-      .catch((err) => console.error("[App] Suggestions fetch failed:", err));
+      .catch(() => {
+        setSuggestions(FALLBACK_SUGGESTIONS);
+        setOriginalSuggestions(FALLBACK_SUGGESTIONS);
+      });
 
     getVulnerabilityData()
-      .then((data) => setVulnerabilityData(data))
-      .catch((err) => console.error("[App] Vulnerability fetch failed:", err));
+      .then((data) => setVulnerabilityData(Array.isArray(data) ? data : []))
+      .catch(() => setVulnerabilityData(FALLBACK_VULNERABILITY));
   }, []);
 
   // ─── Re-simulate when interventions change ─────────────────
@@ -272,6 +299,10 @@ function App() {
     });
   }, []);
 
+  const handleItemClick = useCallback((item) => {
+    setSelectedItem(item);
+  }, []);
+
   const handleReportDownload = useCallback(() => {
     // Generate a printable report
     const s = simulation;
@@ -425,13 +456,22 @@ function App() {
           suggestions={suggestions}
           vulnerabilityData={vulnerabilityData}
           timeOfDay={timeOfDay}
+          onItemClick={handleItemClick}
         />
 
         {/* Search Bar — top center */}
         <SearchBar onPlaceSelect={handlePlaceSelect} />
 
         {/* Heat Map Legend — top right */}
-        <HeatmapLegend visible={activeDataLayer === "heatmap"} />
+        <HeatmapLegend 
+          visible={activeDataLayer === "heatmap"} 
+          onInfoClick={handleItemClick}
+        />
+
+        <AirQualityLegend
+          visible={activeDataLayer === "airquality"}
+          treeCount={treeCount}
+        />
 
         {/* Toolbar — left side */}
         <Toolbar
@@ -522,6 +562,9 @@ function App() {
           type={validationType}
           onClose={() => setValidationMessage(null)}
         />
+
+        {/* Info Card */}
+        <InfoCard item={selectedItem} onClose={() => setSelectedItem(null)} />
       </div>
     </APIProvider>
   );

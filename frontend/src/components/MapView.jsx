@@ -101,6 +101,7 @@ const MapView = forwardRef(function MapView(
     vulnerabilityVisible,
     airQualityVisible,
     timeOfDay,
+    onItemClick,
   },
   ref
 ) {
@@ -197,6 +198,11 @@ const MapView = forwardRef(function MapView(
         radiusMinPixels: 6,
         radiusMaxPixels: 30,
         pickable: true,
+        onClick: (info) => {
+          if (info.object && onItemClick) {
+            onItemClick({ type: "tree", ...info.object });
+          }
+        },
         onHover: (info) => {
           if (info.object) {
             const sp = info.object.species || "maple";
@@ -230,6 +236,11 @@ const MapView = forwardRef(function MapView(
         radiusMinPixels: 12,
         radiusMaxPixels: 35,
         pickable: true,
+        onClick: (info) => {
+          if (info.object && onItemClick) {
+            onItemClick({ type: "cool_roof", ...info.object });
+          }
+        },
         onHover: (info) => {
           if (info.object) {
             setTooltip({ x: info.x, y: info.y, text: "🏠 Cool Roof — reflective coating" });
@@ -268,6 +279,11 @@ const MapView = forwardRef(function MapView(
         radiusMinPixels: 10,
         radiusMaxPixels: 28,
         pickable: true,
+        onClick: (info) => {
+          if (info.object && onItemClick) {
+            onItemClick({ type: "bio_swale", ...info.object });
+          }
+        },
         onHover: (info) => {
           if (info.object) {
             setTooltip({ x: info.x, y: info.y, text: "💧 Bio-Swale — rain garden" });
@@ -308,6 +324,11 @@ const MapView = forwardRef(function MapView(
         radiusMinPixels: 14,
         radiusMaxPixels: 50,
         pickable: true,
+        onClick: (info) => {
+          if (info.object && onItemClick) {
+            onItemClick({ type: "hotspot", ...info.object });
+          }
+        },
         onHover: (info) => {
           if (info.object) {
             const d = info.object;
@@ -370,6 +391,11 @@ const MapView = forwardRef(function MapView(
         radiusMinPixels: 10,
         radiusMaxPixels: 28,
         pickable: true,
+        onClick: (info) => {
+          if (info.object && onItemClick) {
+            onItemClick({ type: "suggestion", ...info.object });
+          }
+        },
         onHover: (info) => {
           if (info.object) {
             const d = info.object;
@@ -428,6 +454,11 @@ const MapView = forwardRef(function MapView(
         },
         lineWidthMinPixels: 1,
         pickable: true,
+        onClick: (info) => {
+          if (info.object && onItemClick) {
+            onItemClick({ type: "vulnerability", ...info.object });
+          }
+        },
         onHover: (info) => {
           if (info.object) {
             const d = info.object;
@@ -513,15 +544,18 @@ const MapView = forwardRef(function MapView(
   }, [airQualityVisible, trees]);
 
   // Combine all layers
+  // Order matters: data layers first (bottom), user interventions last (top, click priority)
   const allLayers = useMemo(() => {
     const layers = [
-      ...cleanAirLayers,
-      ...enhancedTreeLayers,
-      ...coolRoofLayers,
-      ...bioSwaleLayers,
+      // Data layers (bottom)
       ...hotspotLayers,
       ...suggestionLayers,
       ...vulnerabilityLayers,
+      ...cleanAirLayers,
+      // User interventions (top - get click priority over data layers)
+      ...enhancedTreeLayers,
+      ...coolRoofLayers,
+      ...bioSwaleLayers,
     ];
     if (heatmapLayer) layers.push(heatmapLayer);
     return layers;
@@ -544,6 +578,11 @@ const MapView = forwardRef(function MapView(
       const lat = e.detail.latLng.lat;
       const lng = e.detail.latLng.lng;
 
+      // Close info card when clicking empty space (not in intervention mode)
+      if (mode === "explore" && onItemClick) {
+        onItemClick(null);
+      }
+
       if (mode === "tree") {
         onTreePlant([lng, lat, 0]);
       } else if (mode === "cool_roof") {
@@ -563,7 +602,7 @@ const MapView = forwardRef(function MapView(
         console.warn("Temperature fetch failed:", err);
       }
     },
-    [mode, onTreePlant, onCoolRoofPlace, onBioSwalePlace, onMapClick, onTemperatureUpdate]
+    [mode, onTreePlant, onCoolRoofPlace, onBioSwalePlace, onMapClick, onTemperatureUpdate, onItemClick]
   );
 
   // ─── Render ────────────────────────────────────────────────
@@ -578,29 +617,37 @@ const MapView = forwardRef(function MapView(
     fullscreenControl: false,
     clickableIcons: false,
     styles: [
-      // NUCLEAR OPTION: Hide ALL text labels
-      { elementType: "labels.text.fill", stylers: [{ visibility: "off" }] },
-      { elementType: "labels.text.stroke", stylers: [{ visibility: "off" }] },
-      { elementType: "labels.text", stylers: [{ visibility: "off" }] },
-      { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
-      { elementType: "labels", stylers: [{ visibility: "off" }] },
-      
-      // Hide ALL POI completely
-      { featureType: "poi", stylers: [{ visibility: "off" }] },
-      
-      // Hide ALL transit
-      { featureType: "transit", stylers: [{ visibility: "off" }] },
-      
-      // Hide administrative labels (city names, etc.)
-      { featureType: "administrative", elementType: "labels", stylers: [{ visibility: "off" }] },
-      
-      // Only keep road geometry (no labels)
-      { featureType: "road", elementType: "labels", stylers: [{ visibility: "off" }] },
-      { featureType: "road", elementType: "geometry", stylers: [{ visibility: "on" }] },
-      
-      // Keep water/landscape visible but no labels
-      { featureType: "landscape", elementType: "labels", stylers: [{ visibility: "off" }] },
-      { featureType: "water", elementType: "labels", stylers: [{ visibility: "off" }] },
+      // Hide ALL points of interest (businesses, attractions, schools, etc.)
+      {
+        featureType: "poi",
+        stylers: [{ visibility: "off" }]
+      },
+      // Hide transit (bus stops, train stations)
+      {
+        featureType: "transit",
+        stylers: [{ visibility: "off" }]
+      },
+      // Hide labels for small residential streets
+      {
+        featureType: "road.local",
+        elementType: "labels",
+        stylers: [{ visibility: "off" }]
+      },
+      // Hide building footprints for cleaner look
+      {
+        featureType: "landscape.man_made",
+        stylers: [{ visibility: "off" }]
+      },
+      // Explicitly ensure natural features remain visible
+      {
+        featureType: "landscape.natural",
+        stylers: [{ visibility: "on" }]
+      },
+      // Keep water features visible
+      {
+        featureType: "water",
+        stylers: [{ visibility: "on" }]
+      },
     ],
   };
 

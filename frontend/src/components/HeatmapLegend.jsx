@@ -2,7 +2,7 @@
  * Heat Map Legend - Shows temperature scale and color gradient.
  * Appears when heat map layer is active.
  */
-export default function HeatmapLegend({ visible }) {
+export default function HeatmapLegend({ visible, onInfoClick }) {
   if (!visible) return null;
 
   const gradientStops = [
@@ -17,6 +17,15 @@ export default function HeatmapLegend({ visible }) {
       <div style={styles.header}>
         <span style={styles.icon}>🌡️</span>
         <span style={styles.title}>Surface Temperature</span>
+        {onInfoClick && (
+          <button
+            onClick={() => onInfoClick({ type: "heatmap" })}
+            style={styles.infoButton}
+            title="Show heatmap information"
+          >
+            ℹ️
+          </button>
+        )}
       </div>
 
       <div style={styles.gradient}>
@@ -62,6 +71,21 @@ const styles = {
     gap: "8px",
     padding: "10px 14px",
     borderBottom: "1px solid rgba(255,255,255,0.1)",
+  },
+  infoButton: {
+    marginLeft: "auto",
+    background: "rgba(74,222,128,0.15)",
+    border: "1px solid rgba(74,222,128,0.3)",
+    borderRadius: "6px",
+    width: "24px",
+    height: "24px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    fontSize: "12px",
+    transition: "all 0.2s",
+    opacity: 0.7,
   },
   icon: {
     fontSize: "1rem",

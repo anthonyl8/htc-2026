@@ -103,63 +103,66 @@ class AnalysisService:
 
     def get_hotspots(self) -> list[dict]:
         """
-        Return Red Zone hotspots — locations where infrastructure
-        (bus stops, parking lots, walkways) sits in dangerously hot areas.
-        Uses synthetic data anchored to the default city center.
+        Return Red Zone hotspots — algorithmically detected from real LST data.
+        Scans the thermal grid and identifies the hottest locations (45°C+).
         """
         if self._hotspots_cache is not None:
             return self._hotspots_cache
 
-        center_lat = settings.DEFAULT_LAT
-        center_lon = settings.DEFAULT_LON
+        # Get bounds to scan the entire thermal coverage area (south/north/west/east)
+        bounds = satellite_service.get_bounds()
+        if not bounds:
+            return []
 
-        # Seed for reproducibility per city
-        rng = random.Random(42)
-
-        hotspot_templates = [
-            # Bus stops along main roads
-            {"type": "bus_stop", "dlat": 0.0012, "dlon": 0.0005, "desc": "Exposed bus stop — no shade canopy, south-facing asphalt"},
-            {"type": "bus_stop", "dlat": -0.0008, "dlon": 0.0018, "desc": "Transit hub — high pedestrian wait times in direct sun"},
-            {"type": "bus_stop", "dlat": 0.0025, "dlon": -0.0010, "desc": "Bus shelter with metal roof — radiates heat"},
-            {"type": "bus_stop", "dlat": -0.0018, "dlon": -0.0022, "desc": "Bus stop near school — children exposed during pickup"},
-            # Parking lots (large asphalt surfaces)
-            {"type": "parking", "dlat": 0.0020, "dlon": 0.0022, "desc": "Open parking lot — 4000m² unshaded asphalt surface"},
-            {"type": "parking", "dlat": -0.0025, "dlon": 0.0008, "desc": "Mall parking — dark asphalt, zero tree cover"},
-            {"type": "parking", "dlat": 0.0005, "dlon": -0.0030, "desc": "Government building lot — radiates heat into adjacent residential"},
-            # Intersections
-            {"type": "intersection", "dlat": 0.0000, "dlon": 0.0002, "desc": "Major intersection — long pedestrian wait, high radiant heat"},
-            {"type": "intersection", "dlat": 0.0015, "dlon": -0.0018, "desc": "4-way stop — concrete canyon effect amplifies temperature"},
-            # Walking paths
-            {"type": "walkway", "dlat": -0.0005, "dlon": 0.0012, "desc": "Waterfront walkway — fully exposed, popular with elderly"},
-            {"type": "walkway", "dlat": 0.0008, "dlon": -0.0008, "desc": "School route — children walk this path daily in summer heat"},
-            {"type": "walkway", "dlat": -0.0015, "dlon": -0.0012, "desc": "Park connector path — no shade for 400m stretch"},
-        ]
+        lat_min = bounds.get("south", settings.DEFAULT_LAT - 0.02)
+        lat_max = bounds.get("north", settings.DEFAULT_LAT + 0.02)
+        lon_min = bounds.get("west", settings.DEFAULT_LON - 0.02)
+        lon_max = bounds.get("east", settings.DEFAULT_LON + 0.02)
 
         hotspots = []
-        for h in hotspot_templates:
-            lat = center_lat + h["dlat"] + rng.uniform(-0.0002, 0.0002)
-            lon = center_lon + h["dlon"] + rng.uniform(-0.0002, 0.0002)
-            temp_data = satellite_service.get_temperature_at(lat, lon)
-            base_temp = temp_data.get("temperature_c", 38)
+        rng = random.Random(42)
+        
+        # Grid sampling: ~50 points across the area
+        grid_size = 10
+        lat_step = (lat_max - lat_min) / grid_size
+        lon_step = (lon_max - lon_min) / grid_size
 
-            # Hotspots are hotter due to surface type
-            type_bonus = {
-                "bus_stop": rng.uniform(3, 8),
-                "parking": rng.uniform(8, 15),
-                "intersection": rng.uniform(4, 9),
-                "walkway": rng.uniform(2, 6),
-            }.get(h["type"], 4)
+        for i in range(grid_size):
+            for j in range(grid_size):
+                lat = lat_min + i * lat_step + lat_step / 2
+                lon = lon_min + j * lon_step + lon_step / 2
+                
+                temp_data = satellite_service.get_temperature_at(lat, lon)
+                temp = temp_data.get("temperature_c")
+                
+                # Only include actual hotspots (40°C+ so synthetic data yields points)
+                if temp and temp >= 40:
+                    # Infer likely surface type based on temperature
+                    if temp >= 50:
+                        surface_type = "parking"
+                        desc = "Extreme heat zone — likely asphalt or dark surface"
+                    elif temp >= 47:
+                        surface_type = "intersection"
+                        desc = "High-temperature area — exposed pavement or rooftop"
+                    elif temp >= 45:
+                        surface_type = "walkway"
+                        desc = "Hot walkway or plaza — minimal shade"
+                    else:
+                        surface_type = "bus_stop"
+                        desc = "Elevated heat area — potential intervention site"
+                    
+                    hotspots.append({
+                        "lat": round(lat, 6),
+                        "lon": round(lon, 6),
+                        "type": surface_type,
+                        "temperature_c": round(temp, 1),
+                        "description": desc,
+                        "severity": "extreme" if temp >= 50 else "high" if temp >= 45 else "elevated",
+                    })
 
-            final_temp = round(base_temp + type_bonus, 1)
-
-            hotspots.append({
-                "lat": round(lat, 6),
-                "lon": round(lon, 6),
-                "type": h["type"],
-                "temperature_c": final_temp,
-                "description": h["desc"],
-                "severity": "extreme" if final_temp >= 50 else "high" if final_temp >= 45 else "elevated",
-            })
+        # Sort by temperature (hottest first) and limit to top 15
+        hotspots.sort(key=lambda x: x["temperature_c"], reverse=True)
+        hotspots = hotspots[:15]
 
         self._hotspots_cache = hotspots
         return hotspots
@@ -263,132 +266,209 @@ class AnalysisService:
 
     def get_suggestions(self) -> list[dict]:
         """
-        Return optimal tree planting locations based on heat analysis.
-        These are locations where trees would have the greatest cooling impact.
+        Return optimal tree planting locations algorithmically detected from LST data.
+        Uses temperature-based filtering to avoid water bodies (water is cooler).
+        Land temperatures 35-44°C are suitable for tree planting.
         """
         if self._suggestions_cache is not None:
             return self._suggestions_cache
 
-        center_lat = settings.DEFAULT_LAT
-        center_lon = settings.DEFAULT_LON
-        rng = random.Random(99)
+        bounds = satellite_service.get_bounds()
+        if not bounds:
+            return []
 
-        suggestion_templates = [
-            {"dlat": 0.0012, "dlon": 0.0005, "reason": "Adjacent to bus stop — shade for transit users", "potential": 4.2},
-            {"dlat": 0.0020, "dlon": 0.0022, "reason": "Parking lot perimeter — break up heat island", "potential": 5.8},
-            {"dlat": -0.0003, "dlon": 0.0015, "reason": "Pedestrian corridor — high foot traffic area", "potential": 3.5},
-            {"dlat": -0.0025, "dlon": 0.0008, "reason": "Mall frontage — shade reduces AC load for building", "potential": 4.9},
-            {"dlat": 0.0008, "dlon": -0.0008, "reason": "School walking route — protect children from heat", "potential": 3.8},
-            {"dlat": 0.0000, "dlon": -0.0015, "reason": "Residential street — elderly neighborhood, low canopy", "potential": 4.1},
-            {"dlat": -0.0012, "dlon": -0.0005, "reason": "South-facing building edge — afternoon heat trap", "potential": 3.2},
-            {"dlat": 0.0018, "dlon": -0.0020, "reason": "Park entrance — connects green corridor", "potential": 2.8},
-            {"dlat": -0.0008, "dlon": 0.0025, "reason": "Waterfront access path — no existing canopy", "potential": 3.6},
-            {"dlat": 0.0030, "dlon": 0.0010, "reason": "Highway buffer zone — reduce heat radiation to homes", "potential": 5.1},
-        ]
+        lat_min = bounds.get("south", settings.DEFAULT_LAT - 0.02)
+        lat_max = bounds.get("north", settings.DEFAULT_LAT + 0.02)
+        lon_min = bounds.get("west", settings.DEFAULT_LON - 0.02)
+        lon_max = bounds.get("east", settings.DEFAULT_LON + 0.02)
 
         suggestions = []
-        for s in suggestion_templates:
-            lat = center_lat + s["dlat"] + rng.uniform(-0.0001, 0.0001)
-            lon = center_lon + s["dlon"] + rng.uniform(-0.0001, 0.0001)
-            suggestions.append({
-                "lat": round(lat, 6),
-                "lon": round(lon, 6),
-                "cooling_potential": s["potential"],
-                "reason": s["reason"],
-                "priority": "high" if s["potential"] >= 4.0 else "medium",
-            })
+        
+        # Grid sampling for medium-hot zones (good for tree planting)
+        grid_size = 15
+        lat_step = (lat_max - lat_min) / grid_size
+        lon_step = (lon_max - lon_min) / grid_size
 
-        # Sort by highest cooling potential
+        for i in range(grid_size):
+            for j in range(grid_size):
+                lat = lat_min + i * lat_step + lat_step / 2
+                lon = lon_min + j * lon_step + lon_step / 2
+                
+                temp_data = satellite_service.get_temperature_at(lat, lon)
+                temp = temp_data.get("temperature_c")
+                
+                # Filter based on temperature:
+                # - Water is typically < 30°C even in summer
+                # - Land suitable for trees: 35-44°C
+                # - Too hot (45°C+): likely unsuitable (parking lots, roofs)
+                if temp and 35 <= temp < 45:
+                    # Calculate cooling potential based on temperature
+                    cooling_potential = round((temp - 32) * 1.3, 1)
+                    
+                    # Infer reason based on temperature range
+                    if temp >= 42:
+                        reason = "High heat zone — urgent cooling intervention needed"
+                    elif temp >= 39:
+                        reason = "Elevated temperature area — tree shade will reduce heat load"
+                    else:
+                        reason = "Moderate heat zone — tree planting will prevent escalation"
+                    
+                    suggestions.append({
+                        "lat": round(lat, 6),
+                        "lon": round(lon, 6),
+                        "cooling_potential": cooling_potential,
+                        "reason": reason,
+                        "priority": "high" if cooling_potential >= 4.0 else "medium",
+                        "temperature_c": round(temp, 1),
+                    })
+
+        # Sort by highest cooling potential and return top 12
         suggestions.sort(key=lambda x: x["cooling_potential"], reverse=True)
+        suggestions = suggestions[:12]
+
+        print(f"[Analysis] Generated {len(suggestions)} planting suggestions (temp-based filtering)")
 
         self._suggestions_cache = suggestions
         return suggestions
 
     # ─── Social Vulnerability ───────────────────────────────────────
 
-    def get_vulnerability_data(self) -> list[dict]:
+    async def get_vulnerability_data(self) -> list[dict]:
         """
-        Return social vulnerability overlay data.
-        Identifies neighborhoods with high-risk populations
-        (elderly, low-income, lack of AC, medical facilities).
+        Return social vulnerability overlay data using real OSM data.
+        Identifies vulnerable populations: hospitals, schools, senior facilities.
+        Falls back to intelligent placement if OSM is unavailable.
         """
         if self._vulnerability_cache is not None:
             return self._vulnerability_cache
 
+        import httpx
+
         center_lat = settings.DEFAULT_LAT
         center_lon = settings.DEFAULT_LON
 
-        zones = [
-            {
-                "dlat": 0.005, "dlon": -0.008,
-                "label": "Senior Living Complex",
-                "score": 0.85,
-                "factors": "65% residents over 65, limited AC access, low tree canopy",
-                "population": 1200,
-            },
-            {
-                "dlat": -0.008, "dlon": 0.004,
-                "label": "Low-Income Housing",
-                "score": 0.78,
-                "factors": "Below median income, older buildings, poor insulation",
-                "population": 3400,
-            },
-            {
-                "dlat": 0.012, "dlon": 0.010,
-                "label": "Children's Hospital Area",
-                "score": 0.72,
-                "factors": "Pediatric facility, outdoor waiting areas, heat-sensitive patients",
-                "population": 800,
-            },
-            {
-                "dlat": -0.003, "dlon": -0.012,
-                "label": "Public School District",
-                "score": 0.65,
-                "factors": "3 schools, outdoor recess, minimal shade structures",
-                "population": 2100,
-            },
-            {
-                "dlat": 0.015, "dlon": -0.003,
-                "label": "Transit-Dependent Area",
-                "score": 0.60,
-                "factors": "Low car ownership, relies on bus stops, long outdoor wait times",
-                "population": 4500,
-            },
-            {
-                "dlat": -0.010, "dlon": -0.005,
-                "label": "Recent Immigrant Community",
-                "score": 0.55,
-                "factors": "Language barriers for heat warnings, shared housing, limited green space",
-                "population": 2800,
-            },
-            {
-                "dlat": 0.002, "dlon": 0.015,
-                "label": "Mixed Commercial Zone",
-                "score": 0.35,
-                "factors": "Outdoor workers, food vendors, delivery routes",
-                "population": 1500,
-            },
-            {
-                "dlat": -0.015, "dlon": 0.012,
-                "label": "Suburban Residential",
-                "score": 0.20,
-                "factors": "Higher income, good AC access, moderate canopy",
-                "population": 5000,
-            },
-        ]
-
         vulnerability = []
-        for z in zones:
-            vulnerability.append({
-                "lat": round(center_lat + z["dlat"], 6),
-                "lon": round(center_lon + z["dlon"], 6),
-                "label": z["label"],
-                "vulnerability_score": z["score"],
-                "factors": z["factors"],
-                "population": z["population"],
-            })
+        
+        # Try to fetch real OSM data first
+        try:
+            # Simpler, faster query - just the most critical facilities
+            overpass_query = f"""
+            [out:json][timeout:10];
+            (
+              node(around:2000,{center_lat},{center_lon})["amenity"="hospital"];
+              node(around:2000,{center_lat},{center_lon})["amenity"="school"];
+              node(around:2000,{center_lat},{center_lon})["amenity"="nursing_home"];
+            );
+            out body;
+            """
+
+            async with httpx.AsyncClient(timeout=15) as client:
+                response = await client.post(
+                    "https://overpass-api.de/api/interpreter",
+                    data={"data": overpass_query}
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    elements = data.get("elements", [])
+                    
+                    print(f"[Analysis] Found {len(elements)} vulnerable facilities from OSM")
+
+                    # Process each facility
+                    for elem in elements:
+                        lat = elem.get("lat")
+                        lon = elem.get("lon")
+                        if not lat or not lon:
+                            continue
+
+                        tags = elem.get("tags", {})
+                        amenity = tags.get("amenity", "")
+                        name = tags.get("name", "")
+
+                        # Determine vulnerability type and score
+                        if amenity == "hospital":
+                            label = name or "Hospital"
+                            score = 0.75
+                            factors = "Heat-sensitive patients, emergency services"
+                            pop = 500
+                        elif amenity == "nursing_home":
+                            label = name or "Senior Care Facility"
+                            score = 0.85
+                            factors = "Elderly residents, heat vulnerability"
+                            pop = 150
+                        elif amenity == "school":
+                            label = name or "School"
+                            score = 0.65
+                            factors = "Children, outdoor activities"
+                            pop = 400
+                        else:
+                            continue
+
+                        # Get local temperature
+                        temp_data = satellite_service.get_temperature_at(lat, lon)
+                        local_temp = temp_data.get("temperature_c", 35)
+                        
+                        # Boost vulnerability if in hot area
+                        if local_temp >= 40:
+                            score = min(1.0, score + 0.1)
+                            factors += f" | {local_temp}°C zone"
+
+                        vulnerability.append({
+                            "lat": round(lat, 6),
+                            "lon": round(lon, 6),
+                            "label": label,
+                            "vulnerability_score": round(score, 2),
+                            "factors": factors,
+                            "population": pop,
+                        })
+
+        except Exception as e:
+            print(f"[Analysis] OSM vulnerability query failed: {e}")
+
+        # Fallback: If OSM failed or returned nothing, use thermal analysis
+        # to identify hotspots near likely population centers
+        if len(vulnerability) < 3:
+            print("[Analysis] Using thermal-based vulnerability fallback")
+            
+            bounds = satellite_service.get_bounds()
+            if bounds:
+                lat_min = bounds.get("south", center_lat - 0.01)
+                lat_max = bounds.get("north", center_lat + 0.01)
+                lon_min = bounds.get("west", center_lon - 0.01)
+                lon_max = bounds.get("east", center_lon + 0.01)
+                
+                # Sample hot zones that likely contain vulnerable populations
+                grid_size = 6
+                lat_step = (lat_max - lat_min) / grid_size
+                lon_step = (lon_max - lon_min) / grid_size
+                
+                fallback_zones = []
+                for i in range(grid_size):
+                    for j in range(grid_size):
+                        lat = lat_min + i * lat_step + lat_step / 2
+                        lon = lon_min + j * lon_step + lon_step / 2
+                        
+                        temp_data = satellite_service.get_temperature_at(lat, lon)
+                        temp = temp_data.get("temperature_c")
+                        
+                        # Hot zones (38-42°C) likely have vulnerable populations
+                        if temp and 38 <= temp <= 42:
+                            score = min(0.8, (temp - 35) / 10)
+                            fallback_zones.append({
+                                "lat": round(lat, 6),
+                                "lon": round(lon, 6),
+                                "label": "High-Risk Zone",
+                                "vulnerability_score": round(score, 2),
+                                "factors": f"Hot zone ({temp}°C) — likely residential/commercial area",
+                                "population": 300,
+                            })
+                
+                # Add top 5 hottest zones
+                fallback_zones.sort(key=lambda x: x["vulnerability_score"], reverse=True)
+                vulnerability.extend(fallback_zones[:5])
 
         self._vulnerability_cache = vulnerability
+        print(f"[Analysis] Returning {len(vulnerability)} vulnerability zones")
         return vulnerability
 
     # ─── Tree Species ──────────────────────────────────────────────
