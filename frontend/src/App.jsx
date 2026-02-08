@@ -23,7 +23,25 @@ import {
 } from "./services/api";
 import "./App.css";
 
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
+// Strip whitespace and quotes; treat placeholder as missing (avoids AuthFailure from invalid key)
+const rawKey = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "").trim().replace(/^["']|["']$/g, "");
+const GOOGLE_MAPS_API_KEY = rawKey && !/your_google_maps_api_key|your_key_here/i.test(rawKey) ? rawKey : "";
+
+// Default map center (Vancouver) — used for fallback data when API fails or returns empty
+const DEFAULT_CENTER = { lat: 49.2827, lon: -123.1207 };
+const FALLBACK_HOTSPOTS = [
+  { lat: DEFAULT_CENTER.lat, lon: DEFAULT_CENTER.lon, temperature_c: 46, type: "parking", description: "Extreme heat zone", severity: "extreme" },
+  { lat: DEFAULT_CENTER.lat + 0.003, lon: DEFAULT_CENTER.lon, temperature_c: 44, type: "bus_stop", description: "High-temperature area", severity: "high" },
+  { lat: DEFAULT_CENTER.lat - 0.002, lon: DEFAULT_CENTER.lon + 0.002, temperature_c: 43, type: "walkway", description: "Hot walkway", severity: "high" },
+];
+const FALLBACK_SUGGESTIONS = [
+  { lat: DEFAULT_CENTER.lat + 0.001, lon: DEFAULT_CENTER.lon - 0.001, cooling_potential: 4.2, reason: "High heat zone — urgent cooling", priority: "high", temperature_c: 38 },
+  { lat: DEFAULT_CENTER.lat - 0.001, lon: DEFAULT_CENTER.lon + 0.001, cooling_potential: 3.5, reason: "Elevated temperature area", priority: "medium", temperature_c: 36 },
+];
+const FALLBACK_VULNERABILITY = [
+  { lat: DEFAULT_CENTER.lat, lon: DEFAULT_CENTER.lon, label: "Community Center", vulnerability_score: 0.6, population: 5000, factors: "Elderly, schools" },
+  { lat: DEFAULT_CENTER.lat + 0.002, lon: DEFAULT_CENTER.lon, label: "School", vulnerability_score: 0.5, population: 800, factors: "Youth exposure" },
+];
 
 // Fallback data when backend is unreachable (Vancouver-area sample points)
 const FALLBACK_HOTSPOTS = [
@@ -106,8 +124,10 @@ function App() {
     getHotspots()
       .then((data) => {
         const list = Array.isArray(data) ? data : [];
-        setHotspots(list);
-        setOriginalHotspots(list);
+        const useApi = list.length > 0;
+        const items = useApi ? list : FALLBACK_HOTSPOTS;
+        setHotspots(items);
+        setOriginalHotspots(items);
       })
       .catch(() => {
         setHotspots(FALLBACK_HOTSPOTS);
@@ -117,8 +137,10 @@ function App() {
     getSuggestions()
       .then((data) => {
         const list = Array.isArray(data) ? data : [];
-        setSuggestions(list);
-        setOriginalSuggestions(list);
+        const useApi = list.length > 0;
+        const items = useApi ? list : FALLBACK_SUGGESTIONS;
+        setSuggestions(items);
+        setOriginalSuggestions(items);
       })
       .catch(() => {
         setSuggestions(FALLBACK_SUGGESTIONS);
@@ -413,17 +435,17 @@ function App() {
           <span style={{ fontSize: "2.5rem" }}>🌿</span>
           <h1 style={styles.setupTitle}>ReLeaf Setup</h1>
           <p style={styles.setupText}>
-            Add your Google Maps API key to <code>frontend/.env</code>:
+            Set your Google Maps API key in <code>frontend/.env</code> or <code>frontend/.env.local</code>:
           </p>
           <pre style={styles.setupCode}>
-            VITE_GOOGLE_MAPS_API_KEY=your_key_here
+            VITE_GOOGLE_MAPS_API_KEY=your_actual_key
           </pre>
           <p style={styles.setupText}>
-            Required APIs: <strong>Maps JavaScript API</strong>,{" "}
+            In Google Cloud Console enable: <strong>Maps JavaScript API</strong>,{" "}
             <strong>Places API</strong>, <strong>Maps Static API</strong>
           </p>
           <p style={styles.setupHint}>
-            Then restart the dev server with <code>npm run dev</code>
+            Restart the dev server after changing env (<code>npm run dev</code>). No quotes around the key.
           </p>
         </div>
       </div>

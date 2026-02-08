@@ -2,6 +2,8 @@
 
 A 3D interactive platform that lets city planners visualize heat islands and use GenAI to simulate cooling interventions in real-time.
 
+**Run the app:** `./scripts/start-backend.sh` (terminal 1), then `./scripts/start-frontend.sh` (terminal 2), or use `./scripts/start-all.sh`. Open http://localhost:5173. Backend entry point is `main.py` (full API with analysis, heatmap, vision, validation).
+
 ## What is ReLeaf?
 
 ReLeaf is a smart urban planning tool designed to help cities and communities combat the Urban Heat Island (UHI) effect. It combines photorealistic 3D city visualization, real satellite thermal data, and Google's Gemini AI to provide actionable insights for greener, cooler cities.

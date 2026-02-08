@@ -544,21 +544,18 @@ const MapView = forwardRef(function MapView(
   }, [airQualityVisible, trees]);
 
   // Combine all layers
-  // Order matters: data layers first (bottom), user interventions last (top, click priority)
+  // Order: heatmap bottom (background), then data layers, then interventions on top (click priority)
   const allLayers = useMemo(() => {
-    const layers = [
-      // Data layers (bottom)
+    return [
+      heatmapLayer,
       ...hotspotLayers,
       ...suggestionLayers,
       ...vulnerabilityLayers,
       ...cleanAirLayers,
-      // User interventions (top - get click priority over data layers)
       ...enhancedTreeLayers,
       ...coolRoofLayers,
       ...bioSwaleLayers,
-    ];
-    if (heatmapLayer) layers.push(heatmapLayer);
-    return layers;
+    ].filter(Boolean);
   }, [
     cleanAirLayers,
     enhancedTreeLayers,
@@ -607,6 +604,16 @@ const MapView = forwardRef(function MapView(
 
   // ─── Render ────────────────────────────────────────────────
 
+  // When mapId is set, do NOT pass styles (Google controls styling via Cloud Console).
+  const mapStyles = [
+    { featureType: "poi", stylers: [{ visibility: "off" }] },
+    { featureType: "transit", stylers: [{ visibility: "off" }] },
+    { featureType: "road.local", elementType: "labels", stylers: [{ visibility: "off" }] },
+    { featureType: "landscape.man_made", stylers: [{ visibility: "off" }] },
+    { featureType: "landscape.natural", stylers: [{ visibility: "on" }] },
+    { featureType: "water", stylers: [{ visibility: "on" }] },
+  ];
+
   const mapOptions = {
     mapTypeId: "hybrid",
     gestureHandling: "greedy",
@@ -616,46 +623,10 @@ const MapView = forwardRef(function MapView(
     streetViewControl: false,
     fullscreenControl: false,
     clickableIcons: false,
-    styles: [
-      // Hide ALL points of interest (businesses, attractions, schools, etc.)
-      {
-        featureType: "poi",
-        stylers: [{ visibility: "off" }]
-      },
-      // Hide transit (bus stops, train stations)
-      {
-        featureType: "transit",
-        stylers: [{ visibility: "off" }]
-      },
-      // Hide labels for small residential streets
-      {
-        featureType: "road.local",
-        elementType: "labels",
-        stylers: [{ visibility: "off" }]
-      },
-      // Hide building footprints for cleaner look
-      {
-        featureType: "landscape.man_made",
-        stylers: [{ visibility: "off" }]
-      },
-      // Explicitly ensure natural features remain visible
-      {
-        featureType: "landscape.natural",
-        stylers: [{ visibility: "on" }]
-      },
-      // Keep water features visible
-      {
-        featureType: "water",
-        stylers: [{ visibility: "on" }]
-      },
-    ],
+    ...(GOOGLE_MAPS_MAP_ID
+      ? { mapId: GOOGLE_MAPS_MAP_ID, tilt: 45, heading: 0 }
+      : { styles: mapStyles }),
   };
-
-  if (GOOGLE_MAPS_MAP_ID) {
-    mapOptions.mapId = GOOGLE_MAPS_MAP_ID;
-    mapOptions.tilt = 45;
-    mapOptions.heading = 0;
-  }
 
   const isIntervention = mode === "tree" || mode === "cool_roof" || mode === "bio_swale";
 

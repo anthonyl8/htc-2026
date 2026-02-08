@@ -3,6 +3,8 @@ Analysis controller — endpoints for hotspots, simulation, suggestions, vulnera
 tree species, intervention types, and ROI calculation.
 """
 
+from typing import Optional
+
 from fastapi import APIRouter
 from pydantic import BaseModel
 
@@ -16,7 +18,7 @@ router = APIRouter(prefix="/analysis", tags=["Analysis"])
 class TreePosition(BaseModel):
     lat: float = 0
     lon: float = 0
-    position: list[float] | None = None
+    position: Optional[list] = None
 
 
 class SimulationRequest(BaseModel):
@@ -25,10 +27,10 @@ class SimulationRequest(BaseModel):
 
 class InterventionItem(BaseModel):
     type: str = "tree"          # tree | cool_roof | bio_swale
-    species: str | None = None  # oak | maple | pine (for trees)
+    species: Optional[str] = None  # oak | maple | pine (for trees)
     lat: float = 0
     lon: float = 0
-    position: list[float] | None = None
+    position: Optional[list] = None
 
 
 class SimulateV2Request(BaseModel):

@@ -6,6 +6,8 @@ and text analysis of urban heat islands.
 
 import base64
 import io
+from typing import Optional
+
 import httpx
 from PIL import Image
 
@@ -44,7 +46,7 @@ class GeminiService:
         center_lon: float,
         zoom: int,
         tree_count: int = 0,
-        trees: list[dict] | None = None,
+        trees: Optional[list] = None,
     ) -> dict:
         """
         Main entry: fetch satellite image, generate AI-modified version + analysis.

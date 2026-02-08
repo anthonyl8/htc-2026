@@ -2,6 +2,8 @@
 Vision controller — endpoints for Gemini AI urban vision generation.
 """
 
+from typing import Optional
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -16,7 +18,7 @@ class VisionRequest(BaseModel):
     center_lon: float
     zoom: int = 17
     tree_count: int = 0
-    trees: list[dict] | None = None
+    trees: Optional[list] = None
 
 
 @router.post("/generate")

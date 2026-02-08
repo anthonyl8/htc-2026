@@ -218,8 +218,9 @@ class SatelliteService:
         dist = np.sqrt((lat - center_lat) ** 2 + (lon - center_lon) ** 2)
 
         # Base temperature + heat island effect (hotter near center)
-        base_temp = 28.0
-        heat_island_effect = max(0, 12 * (1 - dist / 0.05))
+        # Tuned so data layers get data: center ~48°C (hotspots), outer ring 35–44°C (suggestions)
+        base_temp = 32.0
+        heat_island_effect = max(0, 18 * (1 - dist / 0.05))
 
         # Add some spatial variation using simple hash
         variation = np.sin(lat * 1000) * np.cos(lon * 1000) * 3

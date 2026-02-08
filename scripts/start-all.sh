@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Start ReLeaf backend and frontend from project root.
 # Usage: ./scripts/start-all.sh   (run from htc-2026/)
-
 set -e
 cd "$(dirname "$0")/.."
 
@@ -13,7 +12,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Backend: use .venv or venv
 VENV_DIR=""
 [[ -d backend/.venv ]] && VENV_DIR="backend/.venv"
 [[ -z "$VENV_DIR" && -d backend/venv ]] && VENV_DIR="backend/venv"
@@ -29,7 +27,6 @@ else
   exit 1
 fi
 
-# Frontend
 cd frontend
 [[ -d node_modules ]] || npm install
 echo "Frontend at http://localhost:5173"

@@ -298,10 +298,9 @@ class AnalysisService:
                 temp = temp_data.get("temperature_c")
                 
                 # Filter based on temperature:
-                # - Water is typically < 30°C even in summer
-                # - Land suitable for trees: 35-44°C
-                # - Too hot (45°C+): likely unsuitable (parking lots, roofs)
-                if temp and 35 <= temp < 45:
+                # - Land suitable for trees: 33-46°C (wide range so we always get suggestions)
+                # - Too hot (46°C+): likely unsuitable (parking lots, roofs)
+                if temp and 33 <= temp < 46:
                     # Calculate cooling potential based on temperature
                     cooling_potential = round((temp - 32) * 1.3, 1)
                     

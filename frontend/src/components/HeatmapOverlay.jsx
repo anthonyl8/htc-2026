@@ -36,10 +36,8 @@ export function useHeatmapLayer(visible) {
   if (!visible || gridData.length === 0) return null;
 
   // Filter to only show heat islands (warm/hot areas)
-  // This removes cool areas and only highlights the problem zones
   const hotData = gridData.filter((d) => d.temperature_c >= 30);
-
-  if (hotData.length === 0) return null;
+  const dataToShow = hotData.length > 0 ? hotData : gridData;
 
   // Helper function to get color based on temperature
   const getTempColor = (temp) => {
@@ -51,7 +49,7 @@ export function useHeatmapLayer(visible) {
 
   return new ScatterplotLayer({
     id: "heatmap-layer",
-    data: hotData,
+    data: dataToShow,
     getPosition: (d) => [d.lon, d.lat],
     getFillColor: (d) => getTempColor(d.temperature_c),
     getRadius: 35,  // Balanced radius
