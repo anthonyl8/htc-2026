@@ -53,20 +53,33 @@ class StreetViewAIService:
         if not settings.GOOGLE_MAPS_API_KEY:
             raise ValueError("Google Maps API key not configured")
 
-        # Calculate best viewing angle for the item
-        # Use a slight offset to get better perspective
-        offset_distance = 15  # meters
-        offset_lat = item_lat + (offset_distance / 111111)  # ~15m north
-        
-        # Calculate heading to look at the item
-        heading = self._calculate_bearing(offset_lat, item_lng, item_lat, item_lng)
+        # 1. Get metadata so we use the actual panorama position and point the camera at the item
+        metadata_url = (
+            f"https://maps.googleapis.com/maps/api/streetview/metadata"
+            f"?location={item_lat},{item_lng}&key={settings.GOOGLE_MAPS_API_KEY}"
+        )
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                meta_resp = await client.get(metadata_url)
+                meta_resp.raise_for_status()
+                meta = meta_resp.json()
+            if meta.get("status") != "OK":
+                raise ValueError("No Street View imagery at this location.")
+            pano_lat = meta["location"]["lat"]
+            pano_lng = meta["location"]["lng"]
+        except Exception as e:
+            print(f"[StreetViewAI] Metadata failed: {e}")
+            raise
 
-        # Fetch Street View Static image near the item
+        # 2. Heading from panorama toward the item so the item appears at image center (exact coordinates)
+        heading = self._calculate_bearing(pano_lat, pano_lng, item_lat, item_lng)
+
+        # 3. Fetch image with panorama at item area, looking at item => item at center
         try:
             street_view_url = (
                 f"https://maps.googleapis.com/maps/api/streetview"
                 f"?size=800x600"
-                f"&location={offset_lat},{item_lng}"
+                f"&location={item_lat},{item_lng}"
                 f"&heading={heading}"
                 f"&pitch=-5"
                 f"&fov=90"
@@ -137,22 +150,23 @@ class StreetViewAIService:
             item_description = "vegetation"
             details = "Natural greenery."
         
-        prompt = f"""Add ONLY {item_description} to this street view image at the CENTER of the frame.
+        prompt = f"""Add ONLY {item_description} to this street view image.
+
+The camera is pointed at the exact intervention coordinates: the CENTER of this image (middle of the frame) is that exact location. Place the {item_type} at the CENTER of the image so it appears at the correct real-world position.
 
 ITEM SPECIFICATION:
 - Type: {item_type}
 - Description: {details}
-- Position: Center of the image, at street level (if tree/swale) or on visible rooftop (if cool roof)
+- Position: Exactly at image center (that pixel = intervention coordinates), at street level (if tree/swale) or on visible rooftop (if cool roof)
 
 CRITICAL INSTRUCTIONS:
 1. Add ONLY this ONE {item_type} - absolutely nothing else
-2. Place it in the CENTER/FOREGROUND of the frame where it would naturally exist
+2. Place it at the CENTER of the frame (middle pixel area) so it matches the exact coordinates
 3. Keep ALL other elements COMPLETELY UNCHANGED (buildings, roads, cars, people, sky, signs)
 4. Match existing lighting, shadows, and perspective perfectly
 5. Make it look photorealistic and naturally integrated
-6. The item should look like it's actually there in real life
-7. Do NOT add any other trees, plants, modifications, or embellishments
-8. Keep the exact same colors, weather, and atmosphere
+6. Do NOT add any other trees, plants, modifications, or embellishments
+7. Keep the exact same colors, weather, and atmosphere
 
 This is a precise visualization of ONE {item_type} at this exact location - not a general transformation."""
 
