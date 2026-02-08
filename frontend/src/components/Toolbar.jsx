@@ -153,7 +153,7 @@ function RadioLayerToggle({ active, onClick, color, label }) {
         ...styles.layerBtn,
         ...(active
           ? { background: `${color}15`, color, borderColor: `${color}33` }
-          : {}),
+          : { borderColor: "transparent" }),
       }}
     >
       <span
@@ -246,6 +246,7 @@ const styles = {
     cursor: "pointer",
     textAlign: "left",
     transition: "all 0.15s",
+    outline: "none",
   },
   layerBtn: {
     display: "flex",
@@ -262,6 +263,7 @@ const styles = {
     textAlign: "left",
     transition: "all 0.15s",
     whiteSpace: "nowrap",
+    outline: "none",
   },
   radio: {
     width: "14px",
@@ -299,6 +301,7 @@ const styles = {
     borderRadius: "6px",
     fontSize: "0.75rem",
     cursor: "pointer",
+    outline: "none",
   },
   actionBtn: {
     padding: "10px 14px",
@@ -312,6 +315,7 @@ const styles = {
     backdropFilter: "blur(16px)",
     textAlign: "left",
     transition: "all 0.15s",
+    outline: "none",
   },
   actionBtnActive: {
     background: "rgba(59,130,246,0.12)",
