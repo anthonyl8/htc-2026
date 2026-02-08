@@ -21,6 +21,10 @@ class Settings:
     DEFAULT_LAT: float = float(os.getenv("DEFAULT_LAT", "49.2827"))
     DEFAULT_LON: float = float(os.getenv("DEFAULT_LON", "-123.1207"))
 
+    # Supabase (Optional - for caching)
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
+    SUPABASE_KEY: str = os.getenv("SUPABASE_KEY", "") # Service Role Key or Anon Key
+
     CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
         "http://localhost:5173",

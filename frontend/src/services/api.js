@@ -142,11 +142,20 @@ export async function generateGrantProposal(interventions) {
 
 // ─── Street View AI ──────────────────────────────────────────────
 
+const visualizationCache = new Map();
+
 /**
  * Generate a real-life visualization of a specific planted item.
  * Fetches Street View near the item and composites it at exact position.
+ * Caches results to avoid regeneration.
  */
 export async function visualizeItem(itemLat, itemLng, itemType, species = null) {
+  const cacheKey = `${itemLat}-${itemLng}-${itemType}-${species}`;
+  
+  if (visualizationCache.has(cacheKey)) {
+    return visualizationCache.get(cacheKey);
+  }
+
   const res = await fetch(`${API_URL}/streetview-ai/visualize`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -161,7 +170,10 @@ export async function visualizeItem(itemLat, itemLng, itemType, species = null) 
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || "Failed to generate real-life view");
   }
-  return res.json();
+  
+  const data = await res.json();
+  visualizationCache.set(cacheKey, data);
+  return data;
 }
 
 // ─── Validation ───────────────────────────────────────────────

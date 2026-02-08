@@ -850,19 +850,17 @@ function App() {
             <div
               style={{
                 position: "absolute",
-                top: "16px",
-                right: "16px",
-                bottom: "16px",
+                bottom: "24px",
+                right: "70px",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "flex-end",
                 pointerEvents: "none",
                 zIndex: 1000,
-                overflowY: "auto",
               }}
             >
-          {/* Heat Map Legend — top right */}
-          <div style={{ pointerEvents: "auto", marginBottom: "16px" }}>
+          {/* Heat Map Legend — bottom right */}
+          <div style={{ pointerEvents: "auto" }}>
             <HeatmapLegend
               activeLayer={activeDataLayer}
               onInfoClick={handleItemClick}

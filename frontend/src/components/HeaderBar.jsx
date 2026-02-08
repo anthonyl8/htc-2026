@@ -25,12 +25,6 @@ export default function HeaderBar({
   onSignOut,
   onSignIn,
 }) {
-  const tabs = [
-    { id: "overview", label: "Overview" },
-    { id: "heatmap", label: "Heat Map" },
-    { id: "carbon", label: "Carbon & ROI" },
-  ];
-
   return (
     <header style={styles.header}>
       {/* Brand + Project Switcher (left) */}
@@ -60,24 +54,6 @@ export default function HeaderBar({
             </button>
           </>
         )}
-      </div>
-
-      {/* Navigation (center) */}
-      <div style={styles.centerSection}>
-        <nav style={styles.nav}>
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => onTabChange(tab.id)}
-            style={{
-              ...styles.tab,
-              ...(activeTab === tab.id ? styles.tabActive : {}),
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-        </nav>
       </div>
 
       {/* Search + Save + Auth (Right) */}
@@ -144,18 +120,6 @@ const styles = {
     fontWeight: 500,
     letterSpacing: "0.5px",
   },
-  centerSection: {
-    display: "flex",
-    alignItems: "center",
-    gap: "16px",
-  },
-  nav: {
-    display: "flex",
-    gap: "4px",
-    background: "rgba(0,0,0,0.15)",
-    padding: "4px",
-    borderRadius: "8px",
-  },
   saveBtn: {
     padding: "6px 14px",
     background: "rgba(255,255,255,0.2)",
@@ -185,22 +149,6 @@ const styles = {
     color: "#fff",
     fontSize: "0.85rem",
     cursor: "pointer",
-  },
-  tab: {
-    padding: "8px 16px",
-    background: "transparent",
-    color: "#a7f3d0",
-    border: "none",
-    borderRadius: "6px",
-    fontSize: "0.9rem",
-    fontWeight: 600,
-    cursor: "pointer",
-    transition: "all 0.2s",
-  },
-  tabActive: {
-    color: "#fff",
-    background: "rgba(255,255,255,0.15)",
-    boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
   },
   searchSection: {
     minWidth: "260px",
