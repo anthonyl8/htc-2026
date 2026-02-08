@@ -19,6 +19,7 @@ import { LightingEffect, AmbientLight, _SunLight as SunLight } from "@deck.gl/co
 import { getTemperature } from "../services/api";
 import { useHeatmapLayer } from "./HeatmapOverlay";
 import { useTreeLayers } from "./TreeLayer";
+import AirQualityOverlay from "./AirQualityOverlay";
 
 const GOOGLE_MAPS_MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || "";
 
@@ -98,6 +99,7 @@ const MapView = forwardRef(function MapView(
     suggestionsVisible,
     vulnerabilityData,
     vulnerabilityVisible,
+    airQualityVisible,
     timeOfDay,
   },
   ref
@@ -462,9 +464,58 @@ const MapView = forwardRef(function MapView(
     ];
   }, [vulnerabilityVisible, vulnerabilityData]);
 
+  // Clean air zone around trees (visible when air quality layer is on)
+  const cleanAirLayers = useMemo(() => {
+    if (!airQualityVisible || !trees || trees.length === 0) return [];
+    return [
+      // Outer soft glow — large radius, very transparent
+      new ScatterplotLayer({
+        id: "clean-air-outer",
+        data: trees,
+        getPosition: (d) => [d.position[0], d.position[1]],
+        getRadius: 50,
+        getFillColor: [100, 220, 160, 30],
+        getLineColor: [100, 220, 160, 50],
+        lineWidthMinPixels: 1,
+        stroked: true,
+        filled: true,
+        radiusMinPixels: 28,
+        radiusMaxPixels: 70,
+        pickable: false,
+      }),
+      // Inner clean zone — brighter, tighter
+      new ScatterplotLayer({
+        id: "clean-air-inner",
+        data: trees,
+        getPosition: (d) => [d.position[0], d.position[1]],
+        getRadius: 25,
+        getFillColor: [130, 240, 180, 50],
+        getLineColor: [130, 240, 180, 100],
+        lineWidthMinPixels: 1,
+        stroked: true,
+        filled: true,
+        radiusMinPixels: 14,
+        radiusMaxPixels: 40,
+        pickable: true,
+        onHover: (info) => {
+          if (info.object) {
+            setTooltip({
+              x: info.x,
+              y: info.y,
+              text: "🌿 Clean air zone — tree filters PM2.5 & CO₂",
+            });
+          } else {
+            setTooltip(null);
+          }
+        },
+      }),
+    ];
+  }, [airQualityVisible, trees]);
+
   // Combine all layers
   const allLayers = useMemo(() => {
     const layers = [
+      ...cleanAirLayers,
       ...enhancedTreeLayers,
       ...coolRoofLayers,
       ...bioSwaleLayers,
@@ -475,6 +526,7 @@ const MapView = forwardRef(function MapView(
     if (heatmapLayer) layers.push(heatmapLayer);
     return layers;
   }, [
+    cleanAirLayers,
     enhancedTreeLayers,
     coolRoofLayers,
     bioSwaleLayers,
@@ -558,6 +610,7 @@ const MapView = forwardRef(function MapView(
       >
         <MapInstanceCapture onMapReady={setMapInstance} />
         <DeckGLOverlay layers={allLayers} effects={lightingEffects} />
+        <AirQualityOverlay visible={airQualityVisible} />
       </Map>
 
       {/* Mode indicators */}

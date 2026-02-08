@@ -144,6 +144,12 @@ export default function Toolbar({
           color="#a78bfa"
           label="Vulnerability"
         />
+        <RadioLayerToggle
+          active={activeDataLayer === "airquality"}
+          onClick={() => handleLayerClick("airquality")}
+          color="#38bdf8"
+          label="Air Quality"
+        />
       </Section>
 
       {/* Dashboard & Tools */}

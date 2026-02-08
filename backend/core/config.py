@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 # Explicitly load .env from the backend/ directory (where main.py lives)
 _backend_dir = Path(__file__).resolve().parent.parent
 _env_path = _backend_dir / ".env"
-load_dotenv(_env_path)
+load_dotenv(_env_path, override=True)
 
 # Debug: print loaded keys (first 10 chars only) so you can verify
 _gm = os.getenv("GOOGLE_MAPS_API_KEY", "")
