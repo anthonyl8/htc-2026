@@ -14,7 +14,6 @@ import GrantProposalCard from "./components/GrantProposalCard";
 import HeaderBar from "./components/HeaderBar";
 import AlertBar from "./components/AlertBar";
 import SidebarPanel from "./components/SidebarPanel";
-import HeatRiskZonesPanel from "./components/HeatRiskZonesPanel";
 import { useTreePlanting } from "./hooks/useTreePlanting";
 import {
   getHotspots,
@@ -561,8 +560,9 @@ function App() {
 
         {/* Main content area */}
         <div style={styles.mainContent}>
-          {/* Unified sidebar: data + tools, collapsible, scrollable */}
-          <SidebarPanel
+          {/* Left rail: sidebar + ROI/Simulation (when open) */}
+          <div style={styles.leftRail}>
+            <SidebarPanel
             hotspots={hotspots}
             simulation={simulation}
             showDataPanels={showLeftPanel}
@@ -590,7 +590,32 @@ function App() {
             onSpeciesChange={setSelectedSpecies}
             timeSliderVisible={timeSliderVisible}
             onTimeSliderToggle={handleTimeSliderToggle}
-          />
+            />
+
+            {/* ROI / Simulation — immediately right of sidebar */}
+            {(roiOpen || simulationOpen) && (
+              <div style={styles.resultsPanel}>
+                {roiOpen && (
+                  <ROIPanel
+                    interventions={interventions}
+                    isOpen={roiOpen}
+                    onClose={() => setRoiOpen(false)}
+                    onGenerateProposal={handleGrantProposal}
+                    style={styles.roiPanelInline}
+                  />
+                )}
+                {simulationOpen && (
+                  <SimulationPanel
+                    simulation={simulation}
+                    isOpen={simulationOpen}
+                    onClose={() => setSimulationOpen(false)}
+                    interventionCount={interventionCount}
+                    style={styles.simulationPanelInline}
+                  />
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Map + overlays */}
           <div style={styles.mapArea}>
@@ -656,13 +681,6 @@ function App() {
                 overflowY: "auto",
               }}
             >
-          {/* Heat Risk Zones — Only on Overview/Hotspots */}
-          {(activeTab === "overview" || activeDataLayer === "hotspots") && (
-            <div style={{ pointerEvents: "auto", marginBottom: "16px" }}>
-              <HeatRiskZonesPanel hotspots={hotspots} />
-            </div>
-          )}
-
           {/* Heat Map Legend — top right */}
           <div style={{ pointerEvents: "auto", marginBottom: "16px" }}>
             <HeatmapLegend
@@ -671,40 +689,6 @@ function App() {
               style={{ position: "static" }}
             />
           </div>
-
-          {/* ROI Dashboard — Resizes to fill space */}
-          {roiOpen && (
-            <ROIPanel
-              interventions={interventions}
-              isOpen={roiOpen}
-              onClose={() => setRoiOpen(false)}
-              onGenerateProposal={handleGrantProposal}
-              style={{
-                position: "static",
-                width: "360px",
-                height: "100%",
-                maxHeight: "none",
-                pointerEvents: "auto",
-                flex: "1 1 auto",
-                minHeight: 0,
-              }}
-            />
-          )}
-
-          {/* Simulation Panel — Stays at bottom, auto height */}
-          {simulationOpen && (
-            <SimulationPanel
-              simulation={simulation}
-              isOpen={simulationOpen}
-              onClose={() => setSimulationOpen(false)}
-              interventionCount={interventionCount}
-              style={{
-                position: "static",
-                marginTop: "auto",
-                pointerEvents: "auto",
-              }}
-            />
-          )}
         </div>
         </div>
         </div>
@@ -763,6 +747,42 @@ const styles = {
     flexDirection: "row",
     minHeight: 0,
     position: "relative",
+  },
+  leftRail: {
+    display: "flex",
+    flexDirection: "row",
+    flexShrink: 0,
+  },
+  resultsPanel: {
+    width: "340px",
+    flexShrink: 0,
+    display: "flex",
+    flexDirection: "column",
+    alignSelf: "stretch",
+    minHeight: 0,
+    background: "linear-gradient(135deg, rgba(20, 40, 32, 0.98) 0%, rgba(26, 45, 38, 0.98) 100%)",
+    borderRight: "1px solid rgba(74, 222, 128, 0.2)",
+  },
+  roiPanelInline: {
+    position: "static",
+    width: "100%",
+    height: "100%",
+    minHeight: 0,
+    maxHeight: "none",
+    border: "none",
+    borderRadius: 0,
+    boxShadow: "none",
+    display: "flex",
+    flexDirection: "column",
+  },
+  simulationPanelInline: {
+    position: "static",
+    width: "100%",
+    height: "100%",
+    minHeight: 0,
+    marginTop: 0,
+    display: "flex",
+    flexDirection: "column",
   },
   leftPanel: {
     padding: "16px 0 16px 16px",

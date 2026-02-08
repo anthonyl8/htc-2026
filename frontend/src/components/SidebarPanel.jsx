@@ -72,7 +72,7 @@ export default function SidebarPanel({
               </div>
             )}
 
-            <div style={styles.section}>
+            <div style={styles.toolbarSection}>
               <Toolbar
                 mode={mode}
                 onModeChange={onModeChange}
@@ -186,5 +186,12 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: "8px",
+  },
+  toolbarSection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    flex: 1,
+    minHeight: 0,
   },
 };

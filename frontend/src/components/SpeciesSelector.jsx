@@ -52,7 +52,6 @@ export default function SpeciesSelector({ selectedSpecies, onSpeciesChange }) {
               ...(active
                 ? {
                     background: `${sp.color}22`,
-                    borderColor: `${sp.color}66`,
                     color: "#fff",
                   }
                 : {}),
@@ -107,7 +106,7 @@ const styles = {
     padding: "6px 8px",
     background: "transparent",
     color: "#999",
-    border: "1px solid transparent",
+    border: "none",
     borderRadius: "8px",
     fontSize: "0.76rem",
     cursor: "pointer",

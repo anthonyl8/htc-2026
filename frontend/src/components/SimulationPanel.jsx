@@ -24,6 +24,7 @@ export default function SimulationPanel({ simulation, isOpen, onClose, intervent
       )}
 
       {simulation && !isLoading && (
+        <div style={styles.contentWrap}>
         <div style={styles.content}>
           {/* Before/After Comparison */}
           <div style={styles.comparison}>
@@ -119,6 +120,7 @@ export default function SimulationPanel({ simulation, isOpen, onClose, intervent
             </div>
           )}
         </div>
+        </div>
       )}
 
       {isEmpty && (
@@ -150,22 +152,22 @@ const styles = {
     border: "1px solid rgba(74,222,128,0.2)",
     backdropFilter: "blur(12px)",
     zIndex: 100,
-    overflowY: "auto", // Enable vertical scrolling
-    overflowX: "hidden",
+    overflow: "hidden",
     boxShadow: "0 8px 32px rgba(74,222,128,0.15)",
     scrollbarWidth: "none",
   },
   header: {
+    flexShrink: 0,
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: "14px 16px",
+    padding: "10px 12px",
     borderBottom: "1px solid rgba(255,255,255,0.1)",
   },
   title: {
     margin: 0,
     color: "#fff",
-    fontSize: "0.95rem",
+    fontSize: "0.88rem",
     fontWeight: 700,
   },
   closeBtn: {
@@ -190,19 +192,19 @@ const styles = {
     borderRadius: "2px",
   },
   content: {
-    padding: "14px 16px",
+    padding: "10px 12px",
   },
   comparison: {
     display: "flex",
     alignItems: "center",
     gap: "8px",
-    marginBottom: "14px",
+    marginBottom: "10px",
   },
   comparisonCard: {
     flex: 1,
     background: "rgba(255,255,255,0.05)",
-    borderRadius: "10px",
-    padding: "12px",
+    borderRadius: "8px",
+    padding: "10px",
     textAlign: "center",
   },
   compLabel: {
@@ -247,23 +249,12 @@ const styles = {
     fontSize: "0.7rem",
     marginTop: "3px",
   },
-  summary: {
-    marginBottom: "12px",
-  },
-  summaryRow: {
+  contentWrap: {
+    flex: 1,
+    minHeight: 0,
+    overflowY: "auto",
     display: "flex",
-    justifyContent: "space-between",
-    padding: "5px 0",
-    borderBottom: "1px solid rgba(255,255,255,0.05)",
-  },
-  summaryLabel: {
-    color: "#999",
-    fontSize: "0.82rem",
-  },
-  summaryValue: {
-    color: "#fff",
-    fontSize: "0.82rem",
-    fontWeight: 700,
+    flexDirection: "column",
   },
   impacts: {
     marginTop: "8px",
@@ -309,8 +300,31 @@ const styles = {
     textAlign: "center",
     paddingTop: "4px",
   },
+  summary: {
+    marginBottom: 0,
+  },
+  summaryRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    padding: "5px 0",
+    borderBottom: "1px solid rgba(255,255,255,0.05)",
+  },
+  summaryLabel: {
+    color: "#999",
+    fontSize: "0.82rem",
+  },
+  summaryValue: {
+    color: "#fff",
+    fontSize: "0.82rem",
+    fontWeight: 700,
+  },
   empty: {
-    padding: "40px 16px",
+    flex: 1,
+    minHeight: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "24px 14px",
     textAlign: "center",
   },
   emptyText: {
