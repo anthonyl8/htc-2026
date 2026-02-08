@@ -10,6 +10,7 @@ import TimeSlider from "./components/TimeSlider";
 import ROIPanel from "./components/ROIPanel";
 import FutureVision from "./components/FutureVision";
 import ValidationToast from "./components/ValidationToast";
+import HeatmapLegend from "./components/HeatmapLegend";
 import { useTreePlanting } from "./hooks/useTreePlanting";
 import {
   getHotspots,
@@ -428,6 +429,9 @@ function App() {
 
         {/* Search Bar — top center */}
         <SearchBar onPlaceSelect={handlePlaceSelect} />
+
+        {/* Heat Map Legend — top right */}
+        <HeatmapLegend visible={activeDataLayer === "heatmap"} />
 
         {/* Toolbar — left side */}
         <Toolbar

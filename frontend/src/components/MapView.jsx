@@ -578,15 +578,29 @@ const MapView = forwardRef(function MapView(
     fullscreenControl: false,
     clickableIcons: false,
     styles: [
-      { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] },
-      { featureType: "transit", elementType: "labels", stylers: [{ visibility: "off" }] },
-      { featureType: "transit.station", elementType: "all", stylers: [{ visibility: "off" }] },
-      { featureType: "road", elementType: "labels", stylers: [{ visibility: "simplified" }] },
-      { featureType: "poi.business", stylers: [{ visibility: "off" }] },
-      { featureType: "poi.park", elementType: "labels", stylers: [{ visibility: "off" }] },
-      { featureType: "poi.medical", stylers: [{ visibility: "off" }] },
-      { featureType: "poi.school", stylers: [{ visibility: "off" }] },
-      { featureType: "poi.government", stylers: [{ visibility: "off" }] },
+      // NUCLEAR OPTION: Hide ALL text labels
+      { elementType: "labels.text.fill", stylers: [{ visibility: "off" }] },
+      { elementType: "labels.text.stroke", stylers: [{ visibility: "off" }] },
+      { elementType: "labels.text", stylers: [{ visibility: "off" }] },
+      { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+      { elementType: "labels", stylers: [{ visibility: "off" }] },
+      
+      // Hide ALL POI completely
+      { featureType: "poi", stylers: [{ visibility: "off" }] },
+      
+      // Hide ALL transit
+      { featureType: "transit", stylers: [{ visibility: "off" }] },
+      
+      // Hide administrative labels (city names, etc.)
+      { featureType: "administrative", elementType: "labels", stylers: [{ visibility: "off" }] },
+      
+      // Only keep road geometry (no labels)
+      { featureType: "road", elementType: "labels", stylers: [{ visibility: "off" }] },
+      { featureType: "road", elementType: "geometry", stylers: [{ visibility: "on" }] },
+      
+      // Keep water/landscape visible but no labels
+      { featureType: "landscape", elementType: "labels", stylers: [{ visibility: "off" }] },
+      { featureType: "water", elementType: "labels", stylers: [{ visibility: "off" }] },
     ],
   };
 
