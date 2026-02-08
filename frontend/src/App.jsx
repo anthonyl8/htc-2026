@@ -43,20 +43,6 @@ const FALLBACK_VULNERABILITY = [
   { lat: DEFAULT_CENTER.lat + 0.002, lon: DEFAULT_CENTER.lon, label: "School", vulnerability_score: 0.5, population: 800, factors: "Youth exposure" },
 ];
 
-// Fallback data when backend is unreachable (Vancouver-area sample points)
-const FALLBACK_HOTSPOTS = [
-  { lat: 49.2827, lon: -123.1207, type: "intersection", temperature_c: 42, description: "Hot zone", severity: "high" },
-  { lat: 49.2835, lon: -123.115, type: "parking", temperature_c: 45, description: "Parking lot", severity: "extreme" },
-  { lat: 49.281, lon: -123.125, type: "walkway", temperature_c: 41, description: "Plaza", severity: "high" },
-];
-const FALLBACK_SUGGESTIONS = [
-  { lat: 49.284, lon: -123.118, cooling_potential: 4, reason: "High heat zone", priority: "high", temperature_c: 38 },
-  { lat: 49.2815, lon: -123.122, cooling_potential: 3.5, reason: "Elevated temperature", priority: "medium", temperature_c: 36 },
-];
-const FALLBACK_VULNERABILITY = [
-  { lat: 49.282, lon: -123.119, label: "Community center", vulnerability_score: 0.7, factors: "High-risk zone", population: 500 },
-];
-
 function App() {
   const [mode, setMode] = useState("explore");
   const [simulationOpen, setSimulationOpen] = useState(false);
