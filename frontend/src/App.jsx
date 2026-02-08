@@ -419,6 +419,7 @@ function App() {
           hotspotsVisible={activeDataLayer === "hotspots"}
           suggestionsVisible={activeDataLayer === "suggestions"}
           vulnerabilityVisible={activeDataLayer === "vulnerability"}
+          airQualityVisible={activeDataLayer === "airquality"}
           hotspots={hotspots}
           suggestions={suggestions}
           vulnerabilityData={vulnerabilityData}
