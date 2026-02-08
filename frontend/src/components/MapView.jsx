@@ -21,12 +21,12 @@ import { useHeatmapLayer } from "./HeatmapOverlay";
 
 const GOOGLE_MAPS_MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || "";
 
-// ─── Species color mapping ──────────────────────────────────
+// ─── Species color mapping (high contrast, vibrant) ──────────
 
 const SPECIES_COLORS = {
-  oak: [34, 120, 34, 200],
-  maple: [60, 160, 40, 200],
-  pine: [20, 100, 50, 200],
+  oak: [50, 200, 50, 255],      // Bright green
+  maple: [100, 255, 70, 255],   // Vivid lime green
+  pine: [30, 180, 90, 255],     // Deep forest green
 };
 
 const SPECIES_RADIUS = {
@@ -195,7 +195,10 @@ const MapView = forwardRef(function MapView(
           return [d.position[0], d.position[1], metrics.trunkHeight];
         },
         getRadius: (d) => getTreeMetrics(d.species).canopyRadius,
-        getFillColor: (d) => SPECIES_COLORS[d.species] || [34, 139, 34, 220],
+        getFillColor: (d) => SPECIES_COLORS[d.species] || [100, 255, 70, 255],
+        getLineColor: [255, 255, 255, 200],  // White outline for contrast
+        lineWidthMinPixels: 2,
+        stroked: true,
         radiusScale: 1,
         radiusMinPixels: 8,
         radiusMaxPixels: 35,
@@ -270,9 +273,9 @@ const MapView = forwardRef(function MapView(
         data: coolRoofs,
         getPosition: (d) => [d.position[0], d.position[1]],
         getRadius: 20,
-        getFillColor: [200, 220, 255, 60],
-        getLineColor: [150, 190, 255, 200],
-        lineWidthMinPixels: 2,
+        getFillColor: [150, 200, 255, 120],  // Brighter blue fill
+        getLineColor: [200, 230, 255, 255],  // Vivid light blue outline
+        lineWidthMinPixels: 3,  // Thicker outline
         stroked: true,
         filled: true,
         radiusMinPixels: 12,
@@ -313,9 +316,9 @@ const MapView = forwardRef(function MapView(
         data: bioSwales,
         getPosition: (d) => [d.position[0], d.position[1]],
         getRadius: 15,
-        getFillColor: [60, 140, 200, 70],
-        getLineColor: [56, 189, 248, 200],
-        lineWidthMinPixels: 2,
+        getFillColor: [100, 200, 255, 130],  // Brighter cyan fill
+        getLineColor: [150, 230, 255, 255],  // Vivid cyan outline
+        lineWidthMinPixels: 3,  // Thicker outline
         stroked: true,
         filled: true,
         radiusMinPixels: 10,
@@ -359,9 +362,9 @@ const MapView = forwardRef(function MapView(
           d.type === "parking" ? 55 : d.type === "bus_stop" ? 35 : 30,
         getFillColor: (d) => {
           const t = d.temperature_c || 45;
-          if (t >= 50) return [220, 20, 20, 100];
-          if (t >= 45) return [240, 80, 20, 80];
-          return [240, 140, 20, 60];
+          if (t >= 50) return [255, 30, 30, 150];  // Brighter red
+          if (t >= 45) return [255, 100, 30, 130];  // Bright orange
+          return [255, 180, 30, 110];  // Bright yellow-orange
         },
         radiusMinPixels: 14,
         radiusMaxPixels: 50,
@@ -389,9 +392,9 @@ const MapView = forwardRef(function MapView(
         data: hotspots,
         getPosition: (d) => [d.lon, d.lat],
         getRadius: 10,
-        getFillColor: [220, 38, 38, 230],
-        getLineColor: [255, 255, 255, 200],
-        lineWidthMinPixels: 2,
+        getFillColor: [255, 50, 50, 255],  // Vivid red core
+        getLineColor: [255, 255, 255, 255],  // Bright white outline
+        lineWidthMinPixels: 3,  // Thicker outline
         stroked: true,
         filled: true,
         radiusMinPixels: 5,
@@ -425,9 +428,9 @@ const MapView = forwardRef(function MapView(
         data: suggestions,
         getPosition: (d) => [d.lon, d.lat],
         getRadius: 22,
-        getFillColor: [74, 222, 128, 60],
-        getLineColor: [74, 222, 128, 200],
-        lineWidthMinPixels: 2,
+        getFillColor: [100, 255, 150, 120],  // Brighter green fill
+        getLineColor: [150, 255, 180, 255],  // Vivid light green outline
+        lineWidthMinPixels: 3,  // Thicker outline
         stroked: true,
         filled: true,
         radiusMinPixels: 10,
@@ -481,20 +484,20 @@ const MapView = forwardRef(function MapView(
         getRadius: (d) => 30 + d.vulnerability_score * 40,
         getFillColor: (d) => {
           const s = d.vulnerability_score;
-          if (s >= 0.7) return [147, 51, 234, 70];
-          if (s >= 0.4) return [217, 119, 6, 60];
-          return [59, 130, 246, 40];
+          if (s >= 0.7) return [200, 100, 255, 130];  // Bright purple
+          if (s >= 0.4) return [255, 180, 50, 110];   // Bright amber
+          return [100, 180, 255, 90];  // Bright blue
         },
         radiusMinPixels: 15,
         radiusMaxPixels: 55,
         stroked: true,
         getLineColor: (d) => {
           const s = d.vulnerability_score;
-          if (s >= 0.7) return [147, 51, 234, 150];
-          if (s >= 0.4) return [217, 119, 6, 120];
-          return [59, 130, 246, 80];
+          if (s >= 0.7) return [230, 150, 255, 255];  // Vivid purple outline
+          if (s >= 0.4) return [255, 200, 100, 255];  // Vivid amber outline
+          return [150, 210, 255, 255];  // Vivid blue outline
         },
-        lineWidthMinPixels: 1,
+        lineWidthMinPixels: 3,  // Thicker outline
         pickable: true,
         onClick: (info) => {
           if (info.object && onItemClick) {
@@ -600,7 +603,7 @@ const MapView = forwardRef(function MapView(
   // ─── Render ────────────────────────────────────────────────
 
   const mapOptions = {
-    mapTypeId: "hybrid",
+    mapTypeId: "satellite",
     gestureHandling: "greedy",
     disableDefaultUI: true,
     zoomControl: true,
@@ -609,6 +612,11 @@ const MapView = forwardRef(function MapView(
     fullscreenControl: false,
     clickableIcons: false,
     styles: [
+      // Reduce overall saturation to make icons stand out
+      { elementType: "geometry", stylers: [{ saturation: -50 }, { lightness: -10 }] },
+      
+      // Mute roads to reduce distraction
+      { featureType: "road", elementType: "geometry", stylers: [{ saturation: -70 }, { lightness: -15 }] },
       // Hide ALL points of interest (businesses, attractions, schools, etc.)
       {
         featureType: "poi",
