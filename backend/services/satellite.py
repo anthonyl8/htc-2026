@@ -4,6 +4,7 @@ Handles reading GeoTIFF files and extracting temperature values at coordinates.
 """
 
 import os
+from typing import Optional
 import numpy as np
 
 try:
@@ -127,7 +128,7 @@ class SatelliteService:
                 "source": "sentinel-2",
             }
 
-    def get_bounds(self) -> dict | None:
+    def get_bounds(self) -> Optional[dict]:
         """Return the geographic bounds of the loaded raster."""
         if not self._loaded:
             self.load()

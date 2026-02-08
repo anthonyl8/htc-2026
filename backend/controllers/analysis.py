@@ -54,6 +54,7 @@ async def get_hotspots():
 async def get_suggestions():
     """
     Get optimal tree planting locations ranked by cooling potential.
+    Uses temperature-based filtering (water is cooler, excluded automatically).
     """
     return analysis_service.get_suggestions()
 
@@ -61,10 +62,10 @@ async def get_suggestions():
 @router.get("/vulnerability")
 async def get_vulnerability():
     """
-    Get social vulnerability overlay data — neighborhoods with
-    heat-sensitive populations (elderly, children, low-income).
+    Get social vulnerability overlay data using real OSM data.
+    Identifies hospitals, schools, senior facilities, and community centers.
     """
-    return analysis_service.get_vulnerability_data()
+    return await analysis_service.get_vulnerability_data()
 
 
 # ─── Species & Intervention Types ────────────────────────────────

@@ -25,19 +25,30 @@ export default function AirQualityOverlay({
   useEffect(() => {
     if (!map) return;
 
-    // Remove existing overlay first
-    if (overlayRef.current) {
-      const arr = map.overlayMapTypes.getArray();
-      const idx = arr.indexOf(overlayRef.current);
-      if (idx !== -1) {
-        map.overlayMapTypes.removeAt(idx);
-      }
+    // Remove existing overlay first (overlayMapTypes only on raster maps)
+    if (overlayRef.current && map.overlayMapTypes) {
+      try {
+        const arr = map.overlayMapTypes.getArray();
+        const idx = arr.indexOf(overlayRef.current);
+        if (idx !== -1) {
+          map.overlayMapTypes.removeAt(idx);
+        }
+      } catch (_) {}
       overlayRef.current = null;
     }
 
     if (!visible) return;
 
-    // Create the Air Quality tile overlay
+    if (!API_KEY) {
+      return;
+    }
+
+    // overlayMapTypes exists only on classic (raster) maps; vector maps (mapId) may not support it
+    if (!map.overlayMapTypes) {
+      return;
+    }
+
+    // Create the Air Quality tile overlay (requires Air Quality API enabled in Google Cloud)
     const tileLayer = new google.maps.ImageMapType({
       getTileUrl: (coord, zoom) =>
         `https://airquality.googleapis.com/v1/mapTypes/${mapType}/heatmapTiles/${zoom}/${coord.x}/${coord.y}?key=${API_KEY}`,
@@ -52,7 +63,7 @@ export default function AirQualityOverlay({
     overlayRef.current = tileLayer;
 
     return () => {
-      if (overlayRef.current && map) {
+      if (overlayRef.current && map && map.overlayMapTypes) {
         try {
           const arr = map.overlayMapTypes.getArray();
           const idx = arr.indexOf(overlayRef.current);

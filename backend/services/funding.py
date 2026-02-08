@@ -185,7 +185,8 @@ class FundingService:
             "description": "City budget allocation (required co-funding)",
         })
         remaining -= municipal_contribution
-        
+
+        annual_payment = 0.0  # bond debt service; only > 0 when green bonds are used
         # 4. Green bonds for remainder (low-interest loan)
         if remaining > 0:
             bond_amount = remaining
