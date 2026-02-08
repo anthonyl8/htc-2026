@@ -41,6 +41,12 @@ class StreetViewAIService:
         Returns:
             dict with 'before_image' and 'after_image' as base64 strings
         """
+        # 1. Check Supabase Cache
+        cached = await self._get_from_cache(item_lat, item_lng, item_type, species)
+        if cached:
+            print(f"[StreetViewAI] Cache hit for {item_type} at {item_lat}, {item_lng}")
+            return cached
+
         if not self.client:
             raise ValueError("Gemini API key not configured")
 
@@ -87,12 +93,17 @@ class StreetViewAIService:
             # Transform with Gemini to add the specific item
             after_b64 = await self._composite_item(before_image, item_type, species)
 
-            return {
+            result = {
                 "before_image": before_b64,
                 "after_image": after_b64,
                 "item_type": item_type,
                 "species": species,
             }
+
+            # 2. Save to Supabase Cache
+            await self._save_to_cache(item_lat, item_lng, item_type, species, before_b64, after_b64)
+
+            return result
 
         except Exception as e:
             print(f"[StreetViewAI] Error: {e}")
@@ -190,6 +201,66 @@ This is a precise visualization of ONE {item_type} at this exact location - not 
         
         bearing = math.degrees(math.atan2(x, y))
         return (bearing + 360) % 360
+
+    async def _get_from_cache(self, lat: float, lng: float, item_type: str, species: str = None) -> dict | None:
+        """Retrieve visualization from Supabase if exists."""
+        if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
+            return None
+
+        try:
+            url = f"{settings.SUPABASE_URL}/rest/v1/streetview_visualizations"
+            headers = {
+                "apikey": settings.SUPABASE_KEY,
+                "Authorization": f"Bearer {settings.SUPABASE_KEY}",
+            }
+            params = {
+                "lat": f"eq.{lat}",
+                "lng": f"eq.{lng}",
+                "item_type": f"eq.{item_type}",
+                "select": "before_image,after_image,item_type,species"
+            }
+            if species:
+                params["species"] = f"eq.{species}"
+            else:
+                params["species"] = "is.null"
+
+            async with httpx.AsyncClient(timeout=5) as client:
+                response = await client.get(url, headers=headers, params=params)
+                if response.status_code == 200:
+                    data = response.json()
+                    if data:
+                        return data[0]
+        except Exception as e:
+            print(f"[StreetViewAI] Cache retrieval failed: {e}")
+        
+        return None
+
+    async def _save_to_cache(self, lat: float, lng: float, item_type: str, species: str, before: str, after: str):
+        """Save visualization to Supabase."""
+        if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
+            return
+
+        try:
+            url = f"{settings.SUPABASE_URL}/rest/v1/streetview_visualizations"
+            headers = {
+                "apikey": settings.SUPABASE_KEY,
+                "Authorization": f"Bearer {settings.SUPABASE_KEY}",
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal"
+            }
+            payload = {
+                "lat": lat,
+                "lng": lng,
+                "item_type": item_type,
+                "species": species,
+                "before_image": before,
+                "after_image": after
+            }
+
+            async with httpx.AsyncClient(timeout=10) as client:
+                await client.post(url, headers=headers, json=payload)
+        except Exception as e:
+            print(f"[StreetViewAI] Cache save failed: {e}")
 
 
 # Singleton instance
