@@ -159,41 +159,46 @@ const MapView = forwardRef(function MapView(
 
   const heatmapLayer = useHeatmapLayer(heatmapVisible);
 
-  // Enhanced tree layers with species colors
+  // Enhanced tree layers with realistic 3D appearance
   const enhancedTreeLayers = useMemo(() => {
     if (!trees || trees.length === 0) return [];
 
+    // Get trunk height and canopy size per species
+    const getTreeMetrics = (species) => {
+      const sp = species || "maple";
+      if (sp === "oak") return { trunkHeight: 18, canopyRadius: 12, canopyLayers: 4 };
+      if (sp === "pine") return { trunkHeight: 25, canopyRadius: 5, canopyLayers: 6 };
+      return { trunkHeight: 15, canopyRadius: 8, canopyLayers: 3 }; // maple
+    };
+
     return [
-      // Tree trunks
+      // Tree trunks (ColumnLayer)
       new ColumnLayer({
         id: "tree-trunk-layer",
         data: trees,
         getPosition: (d) => [d.position[0], d.position[1]],
-        getElevation: (d) => {
-          const sp = d.species || "maple";
-          return sp === "oak" ? 25 : sp === "pine" ? 30 : 20;
-        },
-        diskResolution: 8,
-        radius: 1.5,
+        getElevation: (d) => getTreeMetrics(d.species).trunkHeight,
+        diskResolution: 12,
+        radius: 1.2,
         getFillColor: (d) =>
           d.species === "pine" ? [80, 60, 30] : [101, 67, 33],
         elevationScale: 1,
         pickable: false,
       }),
-      // Tree canopies — colored by species
+      
+      // Canopy Layer 1 (bottom) - largest, at trunk top
       new ScatterplotLayer({
-        id: "tree-canopy-layer",
+        id: "tree-canopy-bottom",
         data: trees,
-        getPosition: (d) => [d.position[0], d.position[1]],
-        getRadius: (d) => SPECIES_RADIUS[d.species] || 8,
-        getFillColor: (d) => SPECIES_COLORS[d.species] || [34, 139, 34, 200],
-        getLineColor: [0, 80, 0],
-        lineWidthMinPixels: 2,
-        stroked: true,
-        filled: true,
+        getPosition: (d) => {
+          const metrics = getTreeMetrics(d.species);
+          return [d.position[0], d.position[1], metrics.trunkHeight];
+        },
+        getRadius: (d) => getTreeMetrics(d.species).canopyRadius,
+        getFillColor: (d) => SPECIES_COLORS[d.species] || [34, 139, 34, 220],
         radiusScale: 1,
-        radiusMinPixels: 6,
-        radiusMaxPixels: 30,
+        radiusMinPixels: 8,
+        radiusMaxPixels: 35,
         pickable: true,
         onClick: (info) => {
           if (info.object && onItemClick) {
@@ -213,8 +218,48 @@ const MapView = forwardRef(function MapView(
           }
         },
       }),
+      
+      // Canopy Layer 2 (middle) - medium size
+      new ScatterplotLayer({
+        id: "tree-canopy-middle",
+        data: trees,
+        getPosition: (d) => {
+          const metrics = getTreeMetrics(d.species);
+          return [d.position[0], d.position[1], metrics.trunkHeight + 3];
+        },
+        getRadius: (d) => getTreeMetrics(d.species).canopyRadius * 0.85,
+        getFillColor: (d) => {
+          const color = SPECIES_COLORS[d.species] || [34, 139, 34, 200];
+          // Slightly lighter for depth
+          return [color[0] + 10, color[1] + 10, color[2] + 5, 200];
+        },
+        radiusScale: 1,
+        radiusMinPixels: 6,
+        radiusMaxPixels: 28,
+        pickable: false,
+      }),
+      
+      // Canopy Layer 3 (top) - smallest, creates rounded top
+      new ScatterplotLayer({
+        id: "tree-canopy-top",
+        data: trees,
+        getPosition: (d) => {
+          const metrics = getTreeMetrics(d.species);
+          return [d.position[0], d.position[1], metrics.trunkHeight + 5];
+        },
+        getRadius: (d) => getTreeMetrics(d.species).canopyRadius * 0.6,
+        getFillColor: (d) => {
+          const color = SPECIES_COLORS[d.species] || [34, 139, 34, 200];
+          // Even lighter for highlights
+          return [color[0] + 20, color[1] + 20, color[2] + 10, 180];
+        },
+        radiusScale: 1,
+        radiusMinPixels: 4,
+        radiusMaxPixels: 20,
+        pickable: false,
+      }),
     ];
-  }, [trees]);
+  }, [trees, onItemClick]);
 
   // Cool Roof layers
   const coolRoofLayers = useMemo(() => {

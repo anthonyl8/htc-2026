@@ -1,5 +1,5 @@
 """
-Street View AI controller — endpoint for transforming Street View images with AI greenery.
+Street View AI controller — endpoint for visualizing individual planted items in real-life context.
 """
 
 from fastapi import APIRouter, HTTPException
@@ -10,44 +10,29 @@ from services.streetview_ai import streetview_ai_service
 router = APIRouter(prefix="/streetview-ai", tags=["Street View AI"])
 
 
-class TreePosition(BaseModel):
-    species: str
-    bearing: float  # Bearing from viewpoint to tree
-    distance: float  # Distance in meters
-    lat: float
-    lng: float
+class VisualizeItemRequest(BaseModel):
+    item_lat: float
+    item_lng: float
+    item_type: str  # tree | cool_roof | bio_swale
+    species: str | None = None  # For trees
 
 
-class TransformRequest(BaseModel):
-    lat: float
-    lng: float
-    heading: float = 0  # 0-360, 0=North
-    pitch: float = 0  # -90 to 90, 0=horizontal
-    fov: float = 90  # Field of view
-    trees: list[TreePosition] = []  # Visible planted trees
-
-
-@router.post("/transform")
-async def transform_street_view(request: TransformRequest):
+@router.post("/visualize")
+async def visualize_item(request: VisualizeItemRequest):
     """
-    Transform a Street View image by compositing planted trees at exact coordinates.
+    Generate a real-life visualization of a specific planted item.
     
-    Fetches the Street View image at the specified location and viewing angle,
-    then uses Gemini AI to add ONLY the specific planted trees at their exact positions.
+    Fetches a Street View image near the item's location and uses Gemini AI
+    to composite the item at its exact position.
     
-    Returns both the original and transformed images as base64-encoded JPEGs.
+    Returns before/after images as base64-encoded JPEGs.
     """
     try:
-        # Convert trees to dict format
-        trees_data = [tree.model_dump() for tree in request.trees] if request.trees else []
-        
-        result = await streetview_ai_service.transform_street_view(
-            lat=request.lat,
-            lng=request.lng,
-            heading=request.heading,
-            pitch=request.pitch,
-            fov=request.fov,
-            trees=trees_data,
+        result = await streetview_ai_service.visualize_item(
+            item_lat=request.item_lat,
+            item_lng=request.item_lng,
+            item_type=request.item_type,
+            species=request.species,
         )
         return result
     except ValueError as e:
@@ -56,5 +41,5 @@ async def transform_street_view(request: TransformRequest):
         print(f"[StreetViewAI Controller] Error: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Street View AI transformation failed: {str(e)}",
+            detail=f"Real-life visualization failed: {str(e)}",
         )

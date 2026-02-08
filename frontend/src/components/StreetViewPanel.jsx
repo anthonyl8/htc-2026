@@ -1,10 +1,9 @@
-import { useEffect, useRef, useMemo, useState } from "react";
-import { transformStreetView } from "../services/api";
+import { useEffect, useRef, useMemo } from "react";
 
 /**
  * Street View panel that opens when user clicks a location.
  * Uses native Google Maps Street View Service.
- * Includes AI transformation feature to visualize green interventions.
+ * Standard 360° exploration without AI modifications.
  */
 export default function StreetViewPanel({
   isOpen,
@@ -17,11 +16,6 @@ export default function StreetViewPanel({
   const containerRef = useRef(null);
   const panoramaRef = useRef(null);
   const locationKeyRef = useRef(null);
-  
-  // AI Transformation state
-  const [aiResult, setAiResult] = useState(null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState(null);
 
   // Early returns AFTER hooks (rules of hooks)
   const locationKey = location ? `${location.lat.toFixed(6)},${location.lng.toFixed(6)}` : null;
@@ -151,86 +145,6 @@ export default function StreetViewPanel({
     }
   }, [isOpen, locationKey, location]);
 
-  // Calculate visible trees from current viewpoint
-  const visibleTrees = useMemo(() => {
-    if (!nearbyTrees || nearbyTrees.length === 0 || !panoramaRef.current) return [];
-    
-    try {
-      const pov = panoramaRef.current.getPov();
-      const position = panoramaRef.current.getPosition();
-      const currentHeading = pov.heading;
-      const viewLat = position.lat();
-      const viewLng = position.lng();
-      
-      // Calculate which trees are in the current field of view
-      return nearbyTrees.map((tree) => {
-        const treeLat = tree.position?.[1] ?? tree.lat ?? 0;
-        const treeLon = tree.position?.[0] ?? tree.lon ?? 0;
-        
-        const bearing = calculateBearing(viewLat, viewLng, treeLat, treeLon);
-        const distance = getDistanceMeters(viewLat, viewLng, treeLat, treeLon);
-        
-        // Calculate if tree is in current field of view (±60° from heading)
-        let relativeBearing = (bearing - currentHeading + 360) % 360;
-        if (relativeBearing > 180) relativeBearing -= 360;
-        
-        const inView = Math.abs(relativeBearing) <= 60 && distance <= 50;
-        
-        return {
-          species: tree.species || "maple",
-          bearing: bearing,
-          distance: distance,
-          lat: treeLat,
-          lng: treeLon,
-          inView: inView,
-        };
-      }).filter(t => t.inView);
-    } catch (err) {
-      console.warn("Error calculating visible trees:", err);
-      return [];
-    }
-  }, [nearbyTrees, panoramaRef.current]);
-
-  // Handle AI transformation
-  const handleSimulateGreenFuture = async () => {
-    if (!panoramaRef.current || !location) return;
-
-    try {
-      setAiLoading(true);
-      setAiError(null);
-      setAiResult(null);
-
-      // Get current view parameters
-      const pov = panoramaRef.current.getPov();
-      const position = panoramaRef.current.getPosition();
-
-      console.log("Capturing view with trees:", visibleTrees);
-
-      // Call API to transform with exact tree positions
-      const result = await transformStreetView(
-        position.lat(),
-        position.lng(),
-        pov.heading,
-        pov.pitch,
-        90,
-        visibleTrees
-      );
-
-      setAiResult(result);
-      setAiLoading(false);
-    } catch (error) {
-      console.error("AI transformation failed:", error);
-      setAiError(error.message || "Failed to generate visualization");
-      setAiLoading(false);
-    }
-  };
-
-  // Reset AI state when location changes
-  useEffect(() => {
-    setAiResult(null);
-    setAiError(null);
-  }, [locationKey]);
-
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -303,69 +217,7 @@ export default function StreetViewPanel({
             </div>
           )}
 
-          {/* AI Transformation Button - only show if trees are visible */}
-          {visibleTrees.length > 0 && (
-            <button
-              onClick={handleSimulateGreenFuture}
-              disabled={aiLoading}
-              style={styles.aiButton}
-              title={`Show ${visibleTrees.length} planted tree${visibleTrees.length > 1 ? 's' : ''} in this view`}
-            >
-              {aiLoading 
-                ? "🔄 Generating..." 
-                : `🌳 Show ${visibleTrees.length} Tree${visibleTrees.length > 1 ? 's' : ''}`}
-            </button>
-          )}
         </div>
-
-        {/* AI Result Modal */}
-        {aiResult && (
-          <div style={styles.modalOverlay} onClick={() => setAiResult(null)}>
-            <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.modalHeader}>
-                <span style={styles.modalTitle}>
-                  🌳 Planted Trees Visualization
-                </span>
-                <button onClick={() => setAiResult(null)} style={styles.modalCloseBtn}>
-                  ✕
-                </button>
-              </div>
-              
-              <div style={styles.splitView}>
-                <div style={styles.imagePane}>
-                  <div style={styles.imageLabel}>BEFORE</div>
-                  <img
-                    src={`data:image/jpeg;base64,${aiResult.original_image}`}
-                    alt="Current Street View"
-                    style={styles.image}
-                  />
-                </div>
-                <div style={styles.imagePane}>
-                  <div style={styles.imageLabelAfter}>
-                    AFTER — {aiResult.trees_added} Tree{aiResult.trees_added > 1 ? 's' : ''} Added
-                  </div>
-                  <img
-                    src={`data:image/jpeg;base64,${aiResult.transformed_image}`}
-                    alt="Street View with Planted Trees"
-                    style={styles.image}
-                  />
-                </div>
-              </div>
-              
-              <div style={styles.modalFooter}>
-                Showing {aiResult.trees_added} planted tree{aiResult.trees_added > 1 ? 's' : ''} at exact coordinates. 
-                Everything else remains unchanged.
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* AI Error Message */}
-        {aiError && (
-          <div style={styles.errorToast} onClick={() => setAiError(null)}>
-            ⚠️ {aiError}
-          </div>
-        )}
 
         {/* Navigation hint */}
         <div style={styles.navHint}>
@@ -727,123 +579,5 @@ const styles = {
     textAlign: "center",
     whiteSpace: "nowrap",
     boxShadow: "0 2px 8px rgba(74,222,128,0.3)",
-  },
-  aiButton: {
-    position: "absolute",
-    bottom: "80px",
-    right: "20px",
-    padding: "12px 20px",
-    background: "linear-gradient(135deg, #4ade80 0%, #22c55e 100%)",
-    color: "#000",
-    border: "none",
-    borderRadius: "10px",
-    fontSize: "0.85rem",
-    fontWeight: 700,
-    cursor: "pointer",
-    boxShadow: "0 4px 16px rgba(74,222,128,0.4)",
-    zIndex: 20,
-    transition: "all 0.2s",
-  },
-  modalOverlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,0.85)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1000,
-  },
-  modalContent: {
-    background: "linear-gradient(135deg, rgba(20,30,25,0.98) 0%, rgba(25,35,30,0.98) 100%)",
-    borderRadius: "16px",
-    border: "1px solid rgba(74,222,128,0.3)",
-    maxWidth: "90vw",
-    maxHeight: "90vh",
-    overflow: "hidden",
-    boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
-  },
-  modalHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "16px 20px",
-    borderBottom: "1px solid rgba(74,222,128,0.2)",
-  },
-  modalTitle: {
-    fontSize: "1.1rem",
-    fontWeight: 700,
-    color: "#4ade80",
-  },
-  modalCloseBtn: {
-    background: "rgba(255,255,255,0.1)",
-    border: "1px solid rgba(255,255,255,0.2)",
-    borderRadius: "8px",
-    width: "32px",
-    height: "32px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    color: "#e5e5e5",
-    fontSize: "20px",
-  },
-  splitView: {
-    display: "flex",
-    gap: "2px",
-  },
-  imagePane: {
-    flex: 1,
-    position: "relative",
-  },
-  image: {
-    width: "100%",
-    height: "auto",
-    display: "block",
-  },
-  imageLabel: {
-    position: "absolute",
-    top: "10px",
-    left: "10px",
-    background: "rgba(239,68,68,0.9)",
-    color: "#fff",
-    padding: "6px 12px",
-    borderRadius: "6px",
-    fontSize: "0.75rem",
-    fontWeight: 700,
-    zIndex: 10,
-  },
-  imageLabelAfter: {
-    position: "absolute",
-    top: "10px",
-    left: "10px",
-    background: "rgba(74,222,128,0.9)",
-    color: "#000",
-    padding: "6px 12px",
-    borderRadius: "6px",
-    fontSize: "0.75rem",
-    fontWeight: 700,
-    zIndex: 10,
-  },
-  modalFooter: {
-    padding: "12px 20px",
-    borderTop: "1px solid rgba(74,222,128,0.1)",
-    color: "#999",
-    fontSize: "0.8rem",
-    textAlign: "center",
-  },
-  errorToast: {
-    position: "absolute",
-    bottom: "150px",
-    left: "50%",
-    transform: "translateX(-50%)",
-    background: "rgba(239,68,68,0.95)",
-    color: "#fff",
-    padding: "12px 20px",
-    borderRadius: "10px",
-    fontSize: "0.85rem",
-    fontWeight: 600,
-    boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
-    cursor: "pointer",
-    zIndex: 30,
   },
 };

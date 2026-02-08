@@ -119,18 +119,23 @@ export async function calculateROI(interventions) {
 // ─── Street View AI ──────────────────────────────────────────────
 
 /**
- * Transform a Street View image by compositing planted trees at exact coordinates.
- * Only modifies the image to show the specific trees planted, nothing else.
+ * Generate a real-life visualization of a specific planted item.
+ * Fetches Street View near the item and composites it at exact position.
  */
-export async function transformStreetView(lat, lng, heading, pitch, fov = 90, trees = []) {
-  const res = await fetch(`${API_URL}/streetview-ai/transform`, {
+export async function visualizeItem(itemLat, itemLng, itemType, species = null) {
+  const res = await fetch(`${API_URL}/streetview-ai/visualize`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ lat, lng, heading, pitch, fov, trees }),
+    body: JSON.stringify({ 
+      item_lat: itemLat, 
+      item_lng: itemLng, 
+      item_type: itemType,
+      species: species 
+    }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || "Failed to transform Street View");
+    throw new Error(err.detail || "Failed to generate real-life view");
   }
   return res.json();
 }

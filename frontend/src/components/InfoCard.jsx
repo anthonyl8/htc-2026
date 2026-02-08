@@ -1,9 +1,37 @@
+import { useState } from "react";
+import { visualizeItem } from "../services/api";
+
 /**
  * InfoCard - displays detailed information about clicked map items
  * (trees, cool roofs, hotspots, suggestions, vulnerability zones)
+ * Includes "Real Life View" button for user-placed interventions.
  */
 export default function InfoCard({ item, onClose }) {
+  const [realLifeView, setRealLifeView] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
   if (!item) return null;
+
+  const handleRealLifeView = async () => {
+    if (!item.position && (!item.lat || !item.lng)) return;
+    
+    const lat = item.position ? item.position[1] : item.lat;
+    const lng = item.position ? item.position[0] : item.lng;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const result = await visualizeItem(lat, lng, item.type, item.species);
+      setRealLifeView(result);
+      setLoading(false);
+    } catch (err) {
+      console.error("Real Life View failed:", err);
+      setError(err.message || "Failed to generate visualization");
+      setLoading(false);
+    }
+  };
 
   const renderContent = () => {
     switch (item.type) {
@@ -42,6 +70,9 @@ export default function InfoCard({ item, onClose }) {
               {(!item.species || item.species === "maple") &&
                 "Medium canopy with aesthetic fall colors. Ideal for residential streets and sidewalks. Medium growth rate."}
             </div>
+            <button onClick={handleRealLifeView} disabled={loading} style={styles.actionButton}>
+              {loading ? "🔄 Generating..." : "📸 Real Life View"}
+            </button>
           </>
         );
 
@@ -65,6 +96,9 @@ export default function InfoCard({ item, onClose }) {
               reducing A/C load and energy costs. Reflects solar radiation, keeping
               building and surrounding area cooler.
             </div>
+            <button onClick={handleRealLifeView} disabled={loading} style={styles.actionButton}>
+              {loading ? "🔄 Generating..." : "📸 Real Life View"}
+            </button>
           </>
         );
 
@@ -88,6 +122,9 @@ export default function InfoCard({ item, onClose }) {
               through evapotranspiration. Reduces flooding while creating green
               infrastructure.
             </div>
+            <button onClick={handleRealLifeView} disabled={loading} style={styles.actionButton}>
+              {loading ? "🔄 Generating..." : "📸 Real Life View"}
+            </button>
           </>
         );
 
@@ -237,12 +274,56 @@ export default function InfoCard({ item, onClose }) {
   };
 
   return (
-    <div style={styles.container}>
-      <button onClick={onClose} style={styles.closeButton} aria-label="Close">
-        ×
-      </button>
-      {renderContent()}
-    </div>
+    <>
+      <div style={styles.container}>
+        <button onClick={onClose} style={styles.closeButton} aria-label="Close">
+          ×
+        </button>
+        {renderContent()}
+        {error && (
+          <div style={styles.error}>{error}</div>
+        )}
+      </div>
+
+      {/* Real Life View Modal */}
+      {realLifeView && (
+        <div style={styles.modalOverlay} onClick={() => setRealLifeView(null)}>
+          <div style={styles.modalPanel} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <span style={styles.modalTitle}>📸 Real Life View</span>
+              <button onClick={() => setRealLifeView(null)} style={styles.modalClose}>
+                ✕
+              </button>
+            </div>
+            
+            <div style={styles.splitView}>
+              <div style={styles.imageContainer}>
+                <div style={styles.labelBefore}>BEFORE</div>
+                <img
+                  src={`data:image/jpeg;base64,${realLifeView.before_image}`}
+                  alt="Current location"
+                  style={styles.viewImage}
+                />
+              </div>
+              <div style={styles.imageContainer}>
+                <div style={styles.labelAfter}>
+                  AFTER — {item.type === "tree" ? `${(item.species || "Maple").toUpperCase()} TREE` : item.type.toUpperCase()} ADDED
+                </div>
+                <img
+                  src={`data:image/jpeg;base64,${realLifeView.after_image}`}
+                  alt="With intervention"
+                  style={styles.viewImage}
+                />
+              </div>
+            </div>
+            
+            <div style={styles.modalFooter}>
+              AI-generated visualization of this {item.type} at its exact coordinates
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -321,5 +402,118 @@ const styles = {
     marginTop: "16px",
     paddingTop: "16px",
     borderTop: "1px solid rgba(74,222,128,0.1)",
+  },
+  actionButton: {
+    width: "100%",
+    marginTop: "16px",
+    padding: "12px",
+    background: "linear-gradient(135deg, #4ade80 0%, #22c55e 100%)",
+    color: "#000",
+    border: "none",
+    borderRadius: "8px",
+    fontSize: "0.875rem",
+    fontWeight: 700,
+    cursor: "pointer",
+    transition: "all 0.2s",
+    boxShadow: "0 2px 8px rgba(74,222,128,0.3)",
+  },
+  error: {
+    marginTop: "12px",
+    padding: "10px",
+    background: "rgba(239,68,68,0.1)",
+    border: "1px solid rgba(239,68,68,0.3)",
+    borderRadius: "6px",
+    color: "#ef4444",
+    fontSize: "0.8rem",
+  },
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.9)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2000,
+  },
+  modalPanel: {
+    background: "linear-gradient(135deg, rgba(20,30,25,0.98) 0%, rgba(25,35,30,0.98) 100%)",
+    borderRadius: "16px",
+    border: "1px solid rgba(74,222,128,0.3)",
+    maxWidth: "95vw",
+    maxHeight: "95vh",
+    overflow: "hidden",
+    boxShadow: "0 8px 40px rgba(0,0,0,0.8)",
+  },
+  modalHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "16px 24px",
+    borderBottom: "1px solid rgba(74,222,128,0.2)",
+  },
+  modalTitle: {
+    fontSize: "1.2rem",
+    fontWeight: 700,
+    color: "#4ade80",
+  },
+  modalClose: {
+    background: "rgba(255,255,255,0.1)",
+    border: "1px solid rgba(255,255,255,0.2)",
+    borderRadius: "8px",
+    width: "36px",
+    height: "36px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    color: "#e5e5e5",
+    fontSize: "24px",
+    lineHeight: "1",
+  },
+  splitView: {
+    display: "flex",
+    gap: "2px",
+  },
+  imageContainer: {
+    flex: 1,
+    position: "relative",
+  },
+  viewImage: {
+    width: "100%",
+    height: "auto",
+    display: "block",
+  },
+  labelBefore: {
+    position: "absolute",
+    top: "12px",
+    left: "12px",
+    background: "rgba(239,68,68,0.95)",
+    color: "#fff",
+    padding: "8px 14px",
+    borderRadius: "8px",
+    fontSize: "0.8rem",
+    fontWeight: 700,
+    zIndex: 10,
+    boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+  },
+  labelAfter: {
+    position: "absolute",
+    top: "12px",
+    left: "12px",
+    background: "rgba(74,222,128,0.95)",
+    color: "#000",
+    padding: "8px 14px",
+    borderRadius: "8px",
+    fontSize: "0.8rem",
+    fontWeight: 700,
+    zIndex: 10,
+    boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+  },
+  modalFooter: {
+    padding: "14px 24px",
+    borderTop: "1px solid rgba(74,222,128,0.1)",
+    color: "#999",
+    fontSize: "0.85rem",
+    textAlign: "center",
   },
 };

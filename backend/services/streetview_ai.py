@@ -21,22 +21,25 @@ class StreetViewAIService:
         else:
             self.client = None
 
-    async def transform_street_view(
-        self, lat: float, lng: float, heading: float, pitch: float, fov: float = 90, trees: list = None
+    async def visualize_item(
+        self, 
+        item_lat: float, 
+        item_lng: float, 
+        item_type: str,
+        species: str = None
     ) -> dict:
         """
-        Fetch a Street View image and composite planted trees at exact coordinates.
+        Create a real-life visualization of a specific planted item.
+        Fetches Street View near the item and composites it at exact position.
 
         Args:
-            lat: Latitude of viewpoint
-            lng: Longitude of viewpoint
-            heading: Camera heading (0-360°, 0=North)
-            pitch: Camera pitch (-90 to 90, 0=horizontal)
-            fov: Field of view (default 90°)
-            trees: List of planted trees with position and species
+            item_lat: Latitude of the planted item
+            item_lng: Longitude of the planted item
+            item_type: Type of item (tree, cool_roof, bio_swale)
+            species: Tree species if item_type is tree
 
         Returns:
-            dict with 'original_image' and 'transformed_image' as base64 strings
+            dict with 'before_image' and 'after_image' as base64 strings
         """
         if not self.client:
             raise ValueError("Gemini API key not configured")
@@ -44,122 +47,126 @@ class StreetViewAIService:
         if not settings.GOOGLE_MAPS_API_KEY:
             raise ValueError("Google Maps API key not configured")
 
-        # Fetch Street View Static image
+        # Calculate best viewing angle for the item
+        # Use a slight offset to get better perspective
+        offset_distance = 15  # meters
+        offset_lat = item_lat + (offset_distance / 111111)  # ~15m north
+        
+        # Calculate heading to look at the item
+        heading = self._calculate_bearing(offset_lat, item_lng, item_lat, item_lng)
+
+        # Fetch Street View Static image near the item
         try:
             street_view_url = (
                 f"https://maps.googleapis.com/maps/api/streetview"
                 f"?size=800x600"
-                f"&location={lat},{lng}"
+                f"&location={offset_lat},{item_lng}"
                 f"&heading={heading}"
-                f"&pitch={pitch}"
-                f"&fov={fov}"
+                f"&pitch=-5"
+                f"&fov=90"
                 f"&key={settings.GOOGLE_MAPS_API_KEY}"
             )
 
             async with httpx.AsyncClient(timeout=30) as client:
                 response = await client.get(street_view_url)
+                
+                if response.status_code == 403:
+                    raise ValueError(
+                        "Street View Static API not enabled. "
+                        "Please enable it in Google Cloud Console: "
+                        "https://console.cloud.google.com/apis/library/street-view-image-backend.googleapis.com"
+                    )
+                
                 response.raise_for_status()
-                original_image_bytes = response.content
+                before_image_bytes = response.content
 
             # Convert to PIL Image
-            original_image = Image.open(BytesIO(original_image_bytes))
+            before_image = Image.open(BytesIO(before_image_bytes))
+            before_b64 = self._image_to_base64(before_image)
 
-            # Convert to base64 for response
-            original_b64 = self._image_to_base64(original_image)
-
-            # Only transform if there are trees to add
-            if trees and len(trees) > 0:
-                transformed_b64 = await self._transform_with_gemini(original_image, trees, lat, lng, heading)
-            else:
-                # No trees - return original image
-                transformed_b64 = original_b64
+            # Transform with Gemini to add the specific item
+            after_b64 = await self._composite_item(before_image, item_type, species)
 
             return {
-                "original_image": original_b64,
-                "transformed_image": transformed_b64,
-                "location": {"lat": lat, "lng": lng, "heading": heading, "pitch": pitch},
-                "trees_added": len(trees) if trees else 0,
+                "before_image": before_b64,
+                "after_image": after_b64,
+                "item_type": item_type,
+                "species": species,
             }
 
         except Exception as e:
             print(f"[StreetViewAI] Error: {e}")
             raise
 
-    async def _transform_with_gemini(self, image: Image.Image, trees: list, viewpoint_lat: float, viewpoint_lng: float, heading: float) -> str:
-        """Composite specific planted trees into the street view image at exact positions."""
+    async def _composite_item(self, image: Image.Image, item_type: str, species: str = None) -> str:
+        """Composite a single planted item at the center of the street view image."""
         
         # Convert PIL Image to bytes
         img_buffer = BytesIO()
         image.save(img_buffer, format="JPEG", quality=95)
         img_bytes = img_buffer.getvalue()
 
-        # Build precise prompt based on exact tree positions
-        tree_descriptions = []
-        for i, tree in enumerate(trees, 1):
-            species = tree.get("species", "maple").title()
-            bearing = tree.get("bearing", 0)
-            distance = tree.get("distance", 0)
-            
-            # Convert bearing relative to heading to position in frame
-            relative_bearing = (bearing - heading + 360) % 360
-            if relative_bearing > 180:
-                relative_bearing -= 360
-            
-            # Determine position description
-            if relative_bearing < -60:
-                position = "far left edge"
-            elif relative_bearing < -20:
-                position = "left side"
-            elif relative_bearing < 20:
-                position = "center"
-            elif relative_bearing < 60:
-                position = "right side"
-            else:
-                position = "far right edge"
-            
-            # Determine size based on distance
-            if distance < 10:
-                size_desc = "very close (large, prominent)"
-            elif distance < 25:
-                size_desc = "close (medium size)"
-            else:
-                size_desc = "distant (smaller)"
-            
-            tree_descriptions.append(
-                f"Tree {i}: {species} tree positioned in the {position} of the frame, {size_desc}, approximately {distance:.0f}m away"
-            )
-
-        trees_text = "\n".join(tree_descriptions)
+        # Build precise prompt for the specific item
+        if item_type == "tree":
+            species_name = (species or "maple").title()
+            item_description = f"a mature {species_name} tree"
+            if species == "oak":
+                details = "Large canopy, thick trunk, about 60 feet tall. Full, rounded crown."
+            elif species == "pine":
+                details = "Tall evergreen, conical shape, about 80 feet tall. Dense needles."
+            else:  # maple
+                details = "Medium-sized deciduous tree, about 50 feet tall. Full, leafy canopy."
+        elif item_type == "cool_roof":
+            item_description = "a cool roof coating (reflective white/light gray surface)"
+            details = "Visible on the building rooftop - bright, reflective coating."
+        elif item_type == "bio_swale":
+            item_description = "a bio-swale rain garden"
+            details = "Planted depression with native grasses and shrubs, natural drainage area."
+        else:
+            item_description = "vegetation"
+            details = "Natural greenery."
         
-        prompt = f"""Add ONLY the following specific tree(s) to this street view image, keeping everything else EXACTLY identical:
+        prompt = f"""Add ONLY {item_description} to this street view image at the CENTER of the frame.
 
-{trees_text}
+ITEM SPECIFICATION:
+- Type: {item_type}
+- Description: {details}
+- Position: Center of the image, at street level (if tree/swale) or on visible rooftop (if cool roof)
 
 CRITICAL INSTRUCTIONS:
-1. Add ONLY these {len(trees)} tree(s) - nothing else
-2. Place each tree at the EXACT position specified (bearing and distance)
-3. Keep ALL buildings, roads, cars, people, signs, and other elements COMPLETELY unchanged
-4. Match the existing lighting, shadows, and perspective perfectly
-5. Make the trees look naturally integrated but clearly visible
-6. Use realistic {trees[0].get('species', 'maple')} tree appearance for the species specified
-7. Do NOT add any other vegetation, modifications, or enhancements
-8. The tree should look like it's actually planted there (on sidewalk, grass, etc.)
+1. Add ONLY this ONE {item_type} - absolutely nothing else
+2. Place it in the CENTER/FOREGROUND of the frame where it would naturally exist
+3. Keep ALL other elements COMPLETELY UNCHANGED (buildings, roads, cars, people, sky, signs)
+4. Match existing lighting, shadows, and perspective perfectly
+5. Make it look photorealistic and naturally integrated
+6. The item should look like it's actually there in real life
+7. Do NOT add any other trees, plants, modifications, or embellishments
+8. Keep the exact same colors, weather, and atmosphere
 
-This is a precise visualization of ONLY the planted intervention(s) - not a general transformation."""
+This is a precise visualization of ONE {item_type} at this exact location - not a general transformation."""
 
         try:
-            response = self.client.models.generate_image(
-                model="gemini-2.0-flash-exp-image-generation",
-                prompt=prompt,
-                reference_images=[types.Image.from_bytes(img_bytes)],
+            # Use Gemini 2.5 Flash Image for generation with reference image
+            # Convert reference image to proper format
+            reference_image = types.Part.from_bytes(
+                data=img_bytes,
+                mime_type="image/jpeg"
+            )
+            
+            response = self.client.models.generate_content(
+                model="gemini-2.5-flash-image",
+                contents=[reference_image, prompt],
             )
 
-            if response.images and len(response.images) > 0:
-                generated_image = response.images[0]
-                # Convert to base64
-                return base64.b64encode(generated_image.image.data).decode("utf-8")
-            else:
-                raise ValueError("No image generated by Gemini")
+            # Extract generated image from response
+            for part in response.parts:
+                if part.inline_data is not None:
+                    # Get the image data
+                    image_data = part.inline_data.data
+                    return base64.b64encode(image_data).decode("utf-8")
+            
+            # If no image found in response, raise error
+            raise ValueError("No image generated by Gemini")
 
         except Exception as e:
             print(f"[StreetViewAI] Gemini transformation failed: {e}")
@@ -170,6 +177,19 @@ This is a precise visualization of ONLY the planted intervention(s) - not a gene
         buffer = BytesIO()
         image.save(buffer, format="JPEG", quality=95)
         return base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+    def _calculate_bearing(self, lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+        """Calculate bearing from point 1 to point 2."""
+        import math
+        lat1_rad = math.radians(lat1)
+        lat2_rad = math.radians(lat2)
+        lng_diff = math.radians(lng2 - lng1)
+        
+        x = math.sin(lng_diff) * math.cos(lat2_rad)
+        y = math.cos(lat1_rad) * math.sin(lat2_rad) - math.sin(lat1_rad) * math.cos(lat2_rad) * math.cos(lng_diff)
+        
+        bearing = math.degrees(math.atan2(x, y))
+        return (bearing + 360) % 360
 
 
 # Singleton instance
