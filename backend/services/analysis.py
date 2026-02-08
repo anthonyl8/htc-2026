@@ -213,7 +213,7 @@ class AnalysisService:
             lon = tree.get("lon", tree.get("position", [0, 0])[0] if "position" in tree else 0)
 
             temp_data = satellite_service.get_temperature_at(lat, lon)
-            local_temp = temp_data.get("temperature_c", 35)
+            local_temp = temp_data.get("temperature_c") or 35
 
             # Deterministic Cooling Model
             # Based on thermodynamics: ΔT = BaseCooling * (LocalTemp - AmbientBase) / ScalingFactor
@@ -378,7 +378,7 @@ class AnalysisService:
                 c_lon = (p_west + p_east) / 2
                 
                 temp_data = satellite_service.get_temperature_at(c_lat, c_lon)
-                temp = temp_data.get("temperature_c", 35)
+                temp = temp_data.get("temperature_c") or 35  # Guard against None (no data at pixel)
 
                 # Synthetic correlation: Higher temp -> Lower income
                 # Base income $80k, drops by $5k for every degree above 30
@@ -499,7 +499,7 @@ class AnalysisService:
 
                         # Get local temperature
                         temp_data = satellite_service.get_temperature_at(lat, lon)
-                        local_temp = temp_data.get("temperature_c", 35)
+                        local_temp = temp_data.get("temperature_c") or 35
                         
                         # Boost vulnerability if in hot area
                         if local_temp >= 40:
@@ -727,7 +727,7 @@ class AnalysisService:
             itype = item.get("type", "tree")
 
             temp_data = satellite_service.get_temperature_at(lat, lon)
-            local_temp = temp_data.get("temperature_c", 35)
+            local_temp = temp_data.get("temperature_c") or 35
 
             if itype == "tree":
                 tree_count += 1
