@@ -436,7 +436,7 @@ function App() {
 
         {/* Heat Map Legend — top right */}
         <HeatmapLegend 
-          visible={activeDataLayer === "heatmap"} 
+          activeLayer={activeDataLayer} 
           onInfoClick={handleItemClick}
         />
 
@@ -488,6 +488,7 @@ function App() {
           simulation={simulation}
           isOpen={simulationOpen}
           onClose={() => setSimulationOpen(false)}
+          interventionCount={interventionCount}
         />
 
         {/* ROI Dashboard — bottom right */}

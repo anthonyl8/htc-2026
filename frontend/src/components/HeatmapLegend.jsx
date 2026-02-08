@@ -1,54 +1,160 @@
-/**
- * Heat Map Legend - Shows temperature scale and color gradient.
- * Appears when heat map layer is active.
- */
-export default function HeatmapLegend({ visible, onInfoClick }) {
-  if (!visible) return null;
+import React from "react";
 
-  const gradientStops = [
-    { temp: "42°C+", color: "#dc1426", label: "Extreme Heat" },
-    { temp: "38°C", color: "#f03b20", label: "Very Hot" },
-    { temp: "34°C", color: "#fd8d3c", label: "Hot" },
-    { temp: "30°C", color: "#fed750", label: "Warm" },
-  ];
+/**
+ * Map Legend - Shows legends for different active data layers.
+ * Supports: Heatmap, Hotspots (Red Zones), Suggestions, Vulnerability.
+ */
+export default function HeatmapLegend({ activeLayer, onInfoClick }) {
+  if (!activeLayer) return null;
+
+  const config = getLegendConfig(activeLayer);
+  if (!config) return null;
 
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <span style={styles.icon}>🌡️</span>
-        <span style={styles.title}>Surface Temperature</span>
+        <span style={styles.icon}>{config.icon}</span>
+        <span style={styles.title}>{config.title}</span>
         {onInfoClick && (
           <button
-            onClick={() => onInfoClick({ type: "heatmap" })}
+            onClick={() => onInfoClick({ type: activeLayer })}
             style={styles.infoButton}
-            title="Show heatmap information"
+            title={`Show ${config.title} information`}
           >
             ℹ️
           </button>
         )}
       </div>
 
-      <div style={styles.gradient}>
-        {gradientStops.map((stop, i) => (
-          <div key={i} style={styles.stopRow}>
+      <div style={styles.content}>
+        {config.items.map((item, i) => (
+          <div key={i} style={styles.row}>
             <div
               style={{
                 ...styles.colorBox,
-                background: stop.color,
+                background: item.color,
+                border: item.border || "1px solid rgba(255,255,255,0.3)",
+                borderRadius: item.shape === "circle" ? "50%" : "4px",
               }}
             />
-            <span style={styles.tempLabel}>{stop.temp}</span>
-            <span style={styles.description}>{stop.label}</span>
+            <div style={styles.labelContainer}>
+              <span style={styles.label}>{item.label}</span>
+              {item.desc && <span style={styles.desc}>{item.desc}</span>}
+            </div>
           </div>
         ))}
       </div>
 
       <div style={styles.footer}>
-        <span style={styles.source}>Sentinel-2 LST Data</span>
+        <span style={styles.source}>{config.source}</span>
       </div>
     </div>
   );
 }
+
+// ─── Configuration ───────────────────────────────────────────
+
+function getLegendConfig(layer) {
+  switch (layer) {
+    case "heatmap":
+      return {
+        title: "Surface Temperature",
+        icon: "🌡️",
+        source: "Sentinel-2 LST Data",
+        items: [
+          { label: "42°C+", desc: "Extreme Heat", color: "#dc1426" },
+          { label: "38°C", desc: "Very Hot", color: "#f03b20" },
+          { label: "34°C", desc: "Hot", color: "#fd8d3c" },
+          { label: "30°C", desc: "Warm", color: "#fed750" },
+        ],
+      };
+
+    case "hotspots":
+      return {
+        title: "Red Zones (Hotspots)",
+        icon: "⚠️",
+        source: "Urban Heat Island Analysis",
+        items: [
+          { 
+            label: "≥ 50°C", 
+            desc: "Critical Heat Stress", 
+            color: "rgba(255, 30, 30, 0.8)",
+            shape: "circle" 
+          },
+          { 
+            label: "45–49°C", 
+            desc: "Severe Heat Risk", 
+            color: "rgba(255, 100, 30, 0.8)",
+            shape: "circle" 
+          },
+          { 
+            label: "< 45°C", 
+            desc: "Elevated Temperature", 
+            color: "rgba(255, 180, 30, 0.8)",
+            shape: "circle" 
+          },
+        ],
+      };
+
+    case "suggestions":
+      return {
+        title: "Planting Suggestions",
+        icon: "💡",
+        source: "AI Cooling Potential Model",
+        items: [
+          { 
+            label: "High Impact", 
+            desc: "Max cooling potential", 
+            color: "rgba(100, 255, 150, 0.6)",
+            border: "2px solid rgb(150, 255, 180)",
+            shape: "circle" 
+          },
+          { 
+            label: "Recommended", 
+            desc: "Ideal planting site", 
+            color: "rgba(100, 255, 150, 0.3)",
+            border: "1px solid rgb(150, 255, 180)",
+            shape: "circle" 
+          },
+        ],
+      };
+
+    case "vulnerability":
+      return {
+        title: "Vulnerability Index",
+        icon: "🛡️",
+        source: "Socio-Economic & Health Data",
+        items: [
+          { 
+            label: "Critical Risk (0.7+)", 
+            desc: "High exposure & sensitivity", 
+            color: "rgba(200, 100, 255, 0.6)",
+            border: "2px solid rgb(230, 150, 255)",
+            shape: "circle" 
+          },
+          { 
+            label: "High Risk (0.4–0.7)", 
+            desc: "Moderate resilience", 
+            color: "rgba(255, 180, 50, 0.6)",
+            border: "2px solid rgb(255, 200, 100)",
+            shape: "circle" 
+          },
+          { 
+            label: "Moderate Risk (<0.4)", 
+            desc: "Standard resilience", 
+            color: "rgba(100, 180, 255, 0.6)",
+            border: "2px solid rgb(150, 210, 255)",
+            shape: "circle" 
+          },
+        ],
+      };
+
+    default:
+      return null;
+  }
+}
+
+// ─── Styles ──────────────────────────────────────────────────
 
 const styles = {
   container: {
@@ -62,8 +168,9 @@ const styles = {
     border: "1px solid rgba(74,222,128,0.2)",
     backdropFilter: "blur(16px)",
     zIndex: 150,
-    minWidth: "200px",
+    minWidth: "220px",
     boxShadow: "0 4px 20px rgba(74,222,128,0.15)",
+    transition: "all 0.3s ease",
   },
   header: {
     display: "flex",
@@ -85,50 +192,52 @@ const styles = {
     cursor: "pointer",
     fontSize: "12px",
     transition: "all 0.2s",
-    opacity: 0.7,
+    color: "#4ade80",
+    opacity: 0.8,
   },
   icon: {
     fontSize: "1rem",
   },
   title: {
     color: "#4ade80",
-    fontSize: "0.8rem",
+    fontSize: "0.85rem",
     fontWeight: 700,
     letterSpacing: "0.3px",
   },
-  gradient: {
+  content: {
     display: "flex",
     flexDirection: "column",
-    padding: "8px 14px",
-    gap: "6px",
+    padding: "10px 14px",
+    gap: "8px",
   },
-  stopRow: {
+  row: {
     display: "flex",
     alignItems: "center",
-    gap: "8px",
+    gap: "10px",
   },
   colorBox: {
     width: "20px",
     height: "20px",
-    borderRadius: "4px",
     flexShrink: 0,
-    border: "1px solid rgba(255,255,255,0.3)",
     boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
   },
-  tempLabel: {
+  labelContainer: {
+    display: "flex",
+    flexDirection: "column",
+  },
+  label: {
     color: "#fff",
     fontSize: "0.75rem",
     fontWeight: 700,
-    fontFamily: "monospace",
-    minWidth: "42px",
   },
-  description: {
-    color: "#999",
-    fontSize: "0.68rem",
+  desc: {
+    color: "#aaa",
+    fontSize: "0.65rem",
     fontWeight: 500,
+    marginTop: "1px",
   },
   footer: {
-    padding: "6px 14px",
+    padding: "8px 14px",
     borderTop: "1px solid rgba(255,255,255,0.08)",
   },
   source: {
@@ -136,5 +245,6 @@ const styles = {
     fontSize: "0.62rem",
     fontWeight: 600,
     letterSpacing: "0.3px",
+    textTransform: "uppercase",
   },
 };

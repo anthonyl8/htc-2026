@@ -2,10 +2,11 @@
  * Before/After simulation panel that shows the cooling impact of all interventions.
  * Appears at the bottom-right of the screen.
  */
-export default function SimulationPanel({ simulation, isOpen, onClose }) {
+export default function SimulationPanel({ simulation, isOpen, onClose, interventionCount = 0 }) {
   if (!isOpen) return null;
 
-  const loading = !simulation && isOpen;
+  const isEmpty = interventionCount === 0;
+  const isLoading = !isEmpty && !simulation;
 
   return (
     <div style={styles.container}>
@@ -16,13 +17,13 @@ export default function SimulationPanel({ simulation, isOpen, onClose }) {
         </button>
       </div>
 
-      {loading && (
+      {isLoading && (
         <div style={styles.loadingBar}>
           <div style={styles.loadingFill} />
         </div>
       )}
 
-      {simulation && !loading && (
+      {simulation && !isLoading && (
         <div style={styles.content}>
           {/* Before/After Comparison */}
           <div style={styles.comparison}>
@@ -120,11 +121,10 @@ export default function SimulationPanel({ simulation, isOpen, onClose }) {
         </div>
       )}
 
-      {!simulation && !loading && (
+      {isEmpty && (
         <div style={styles.empty}>
           <p style={styles.emptyText}>
-            Add interventions on the map, then open this panel to see the
-            simulated cooling impact.
+            Add interventions on the map, then open this panel to see the simulated cooling impact.
           </p>
         </div>
       )}
@@ -308,12 +308,12 @@ const styles = {
     paddingTop: "4px",
   },
   empty: {
-    padding: "24px 16px",
+    padding: "40px 16px",
     textAlign: "center",
   },
   emptyText: {
-    color: "#888",
-    fontSize: "0.85rem",
-    lineHeight: 1.5,
+    color: "#bbb",
+    fontSize: "0.9rem",
+    lineHeight: 1.6,
   },
 };
