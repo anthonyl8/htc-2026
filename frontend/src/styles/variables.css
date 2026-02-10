@@ -1,0 +1,53 @@
+/**
+ * Design tokens — single source of truth for colors, spacing, shadows.
+ * Use these in component CSS to avoid duplication and keep consistency.
+ */
+:root {
+  /* Brand & UI */
+  --color-green: #4ade80;
+  --color-green-dark: #22c55e;
+  --color-green-tint: rgba(74, 222, 128, 0.15);
+  --color-green-border: rgba(74, 222, 128, 0.2);
+  --color-green-border-strong: rgba(74, 222, 128, 0.3);
+  --color-green-bg: rgba(74, 222, 128, 0.08);
+
+  /* Semantic */
+  --color-text: #e5e5e5;
+  --color-text-muted: #888;
+  --color-text-dim: #666;
+  --color-label: #999;
+  --color-error: #ef4444;
+  --color-warning: #f97316;
+  --color-amber: #fbbf24;
+  --color-blue: #60a5fa;
+  --color-blue-dark: #3b82f6;
+  --color-purple: #a78bfa;
+
+  /* Panel / surface */
+  --panel-bg: linear-gradient(135deg, rgba(20, 35, 30, 0.97) 0%, rgba(26, 40, 35, 0.97) 100%);
+  --panel-bg-solid: linear-gradient(135deg, rgba(20, 30, 25, 0.98) 0%, rgba(25, 35, 30, 0.98) 100%);
+  --panel-border: 1px solid var(--color-green-border);
+  --panel-shadow: 0 8px 32px rgba(74, 222, 128, 0.15);
+  --panel-shadow-sm: 0 4px 20px rgba(74, 222, 128, 0.12);
+
+  /* Header / alert bar */
+  --header-bg: linear-gradient(135deg, #14532d 0%, #166534 100%);
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --radius-2xl: 16px;
+
+  /* Z-index scale */
+  --z-map: 50;
+  --z-stats: 90;
+  --z-panel: 100;
+  --z-legend: 150;
+  --z-infocard: 200;
+  --z-header: 200;
+  --z-toast: 2000;
+  --z-modal: 2000;
+  --z-overlay: 9999;
+}

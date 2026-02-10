@@ -1,0 +1,218 @@
+.InfoCard {
+  position: absolute;
+  top: 80px;
+  right: 20px;
+  width: 320px;
+  max-height: 500px;
+  background: var(--panel-bg-solid);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-green-border-strong);
+  border-radius: var(--radius-2xl);
+  padding: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px rgba(74, 222, 128, 0.1);
+  z-index: var(--z-infocard);
+  color: var(--color-text);
+  overflow-y: auto;
+}
+
+.InfoCard-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: var(--radius-md);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text);
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 1;
+  transition: all 0.2s;
+}
+
+.InfoCard-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-green-border);
+}
+
+.InfoCard-icon {
+  font-size: 2rem;
+}
+
+.InfoCard-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-green);
+  margin: 0;
+}
+
+.InfoCard-section {
+  margin-bottom: 12px;
+}
+
+.InfoCard-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.InfoCard-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.InfoCard-value--danger {
+  color: var(--color-error);
+}
+
+.InfoCard-value--success {
+  color: var(--color-green);
+}
+
+.InfoCard-description {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: #bbb;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-green-tint);
+}
+
+.InfoCard-actionBtn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px;
+  background: linear-gradient(135deg, var(--color-green) 0%, var(--color-green-dark) 100%);
+  color: #000;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(74, 222, 128, 0.3);
+}
+
+.InfoCard-error {
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-sm);
+  color: var(--color-error);
+  font-size: 0.8rem;
+}
+
+/* Real Life View modal */
+.InfoCard-modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+}
+
+.InfoCard-modalPanel {
+  background: var(--panel-bg-solid);
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--color-green-border-strong);
+  max-width: 95vw;
+  max-height: 95vh;
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.8);
+}
+
+.InfoCard-modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--color-green-border);
+}
+
+.InfoCard-modalTitle {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-green);
+}
+
+.InfoCard-modalClose {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.InfoCard-splitView {
+  display: flex;
+  gap: 2px;
+}
+
+.InfoCard-imageContainer {
+  flex: 1;
+  position: relative;
+}
+
+.InfoCard-viewImage {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.InfoCard-labelBefore {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(239, 68, 68, 0.95);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 700;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.InfoCard-labelAfter {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(74, 222, 128, 0.95);
+  color: #000;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 700;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.InfoCard-modalFooter {
+  padding: 14px 24px;
+  border-top: 1px solid var(--color-green-tint);
+  color: var(--color-label);
+  font-size: 0.85rem;
+  text-align: center;
+}

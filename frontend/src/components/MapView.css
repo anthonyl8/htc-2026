@@ -1,0 +1,59 @@
+.MapView {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: #0a0a1a;
+}
+
+.MapView-map {
+  width: 100%;
+  height: 100%;
+}
+
+.MapView-modeIndicator {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--color-green) 0%, var(--color-green-dark) 100%);
+  color: #000;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  pointer-events: none;
+  z-index: var(--z-map);
+  box-shadow: 0 4px 16px rgba(74, 222, 128, 0.4), 0 0 20px rgba(74, 222, 128, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.MapView-modeIndicator--coolRoof {
+  background: rgba(150, 190, 255, 0.9);
+}
+
+.MapView-modeIndicator--bioSwale {
+  background: rgba(56, 189, 248, 0.9);
+}
+
+.MapView-modeIndicator--streetview {
+  background: rgba(251, 191, 36, 0.9);
+}
+
+.MapView-tooltip {
+  position: absolute;
+  background: var(--panel-bg-solid);
+  color: var(--color-text);
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  font-weight: 500;
+  max-width: 350px;
+  pointer-events: none;
+  z-index: var(--z-infocard);
+  border: 1px solid var(--color-green-border-strong);
+  box-shadow: 0 4px 16px rgba(74, 222, 128, 0.2);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

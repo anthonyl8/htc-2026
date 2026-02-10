@@ -1,0 +1,102 @@
+.HeatmapLegend {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, rgba(20, 35, 30, 0.95) 0%, rgba(26, 40, 35, 0.95) 100%);
+  border-radius: var(--radius-lg);
+  border: var(--panel-border);
+  backdrop-filter: blur(16px);
+  z-index: var(--z-legend);
+  min-width: 220px;
+  box-shadow: var(--panel-shadow-sm);
+  transition: all 0.3s ease;
+}
+
+.HeatmapLegend-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.HeatmapLegend-infoBtn {
+  margin-left: auto;
+  background: var(--color-green-tint);
+  border: 1px solid var(--color-green-border-strong);
+  border-radius: var(--radius-sm);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+  color: var(--color-green);
+  opacity: 0.8;
+}
+
+.HeatmapLegend-icon {
+  font-size: 1rem;
+}
+
+.HeatmapLegend-title {
+  color: var(--color-green);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.HeatmapLegend-content {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 14px;
+  gap: 8px;
+}
+
+.HeatmapLegend-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.HeatmapLegend-colorBox {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.HeatmapLegend-labelContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.HeatmapLegend-label {
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.HeatmapLegend-desc {
+  color: #aaa;
+  font-size: 0.65rem;
+  font-weight: 500;
+  margin-top: 1px;
+}
+
+.HeatmapLegend-footer {
+  padding: 8px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.HeatmapLegend-source {
+  color: var(--color-text-dim);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}

@@ -1,0 +1,220 @@
+.SimulationPanel {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 340px;
+  overflow: hidden;
+  scrollbar-width: none;
+  z-index: var(--z-panel);
+}
+
+.SimulationPanel.panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.SimulationPanel-header {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.SimulationPanel-title {
+  margin: 0;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.SimulationPanel-closeBtn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1.4rem;
+  cursor: pointer;
+  line-height: 1;
+  outline: none;
+}
+
+.SimulationPanel-contentWrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.SimulationPanel-content {
+  padding: 10px 12px;
+}
+
+.SimulationPanel-comparison {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.SimulationPanel-comparisonCard {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  text-align: center;
+}
+
+.SimulationPanel-compLabel {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.SimulationPanel-compTemp {
+  display: block;
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin-bottom: 2px;
+}
+
+.SimulationPanel-compDetail {
+  display: block;
+  color: var(--color-label);
+  font-size: 0.75rem;
+}
+
+.SimulationPanel-arrow {
+  color: var(--color-green);
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.SimulationPanel-redZoneBar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.SimulationPanel-redZoneFill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.SimulationPanel-redZoneText {
+  display: block;
+  color: var(--color-label);
+  font-size: 0.7rem;
+  margin-top: 3px;
+}
+
+.SimulationPanel-summary {
+  margin-bottom: 0;
+}
+
+.SimulationPanel-summaryRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.SimulationPanel-summaryLabel {
+  color: var(--color-label);
+  font-size: 0.82rem;
+}
+
+.SimulationPanel-summaryValue {
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.SimulationPanel-summaryValue--success {
+  color: var(--color-green);
+}
+
+.SimulationPanel-impacts {
+  margin-top: 8px;
+}
+
+.SimulationPanel-impactsTitle {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.SimulationPanel-impactsList {
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.SimulationPanel-impactRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 0.8rem;
+}
+
+.SimulationPanel-impactTree {
+  color: var(--color-green);
+  width: 50px;
+  flex-shrink: 0;
+}
+
+.SimulationPanel-impactTemp {
+  color: #ccc;
+  flex: 1;
+}
+
+.SimulationPanel-impactDelta {
+  color: var(--color-green);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.SimulationPanel-moreText {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  text-align: center;
+  padding-top: 4px;
+}
+
+.SimulationPanel-empty {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 14px;
+  text-align: center;
+}
+
+.SimulationPanel-emptyText {
+  color: #bbb;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.SimulationPanel--inline {
+  position: static;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+}

@@ -1,0 +1,291 @@
+.ROIPanel {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 360px;
+  max-height: 85vh;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  z-index: var(--z-panel);
+}
+
+.ROIPanel.panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.ROIPanel-header {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ROIPanel-title {
+  margin: 0;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.ROIPanel-closeBtn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1.4rem;
+  cursor: pointer;
+  line-height: 1;
+  outline: none;
+}
+
+.ROIPanel-contentWrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ROIPanel-scrollContent {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.ROIPanel-content {
+  padding: 12px 14px 12px;
+}
+
+.ROIPanel-kpiRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.ROIPanel-kpiCard {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--color-green-bg);
+  border-radius: var(--radius-md);
+  padding: 8px 6px;
+  gap: 1px;
+  border: 1px solid var(--color-green-tint);
+}
+
+.ROIPanel-kpiIcon {
+  font-size: 1rem;
+}
+
+.ROIPanel-kpiValue {
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.ROIPanel-kpiLabel {
+  color: var(--color-text-muted);
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+}
+
+.ROIPanel-breakdown {
+  margin-bottom: 6px;
+}
+
+.ROIPanel-breakdownTitle {
+  display: block;
+  color: #555;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  margin-bottom: 4px;
+}
+
+.ROIPanel-breakdownRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.ROIPanel-breakdownIcon {
+  font-size: 0.75rem;
+  width: 16px;
+}
+
+.ROIPanel-breakdownLabel {
+  flex: 1;
+  color: #ccc;
+  font-size: 0.72rem;
+}
+
+.ROIPanel-breakdownCost {
+  color: var(--color-warning);
+  font-size: 0.7rem;
+  font-weight: 600;
+  width: 55px;
+  text-align: right;
+}
+
+.ROIPanel-breakdownCooling {
+  color: var(--color-green);
+  font-size: 0.7rem;
+  font-weight: 700;
+  width: 42px;
+  text-align: right;
+}
+
+.ROIPanel-metrics {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 6px;
+}
+
+.ROIPanel-metricRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.ROIPanel-metricIcon {
+  font-size: 0.75rem;
+  width: 16px;
+}
+
+.ROIPanel-metricLabel {
+  flex: 1;
+  color: var(--color-label);
+  font-size: 0.72rem;
+}
+
+.ROIPanel-metricValue {
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.ROIPanel-budgetGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ROIPanel-budgetRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+  font-size: 0.68rem;
+}
+
+.ROIPanel-budgetLabel {
+  color: var(--color-label);
+}
+
+.ROIPanel-budgetValue {
+  color: #ccc;
+  font-weight: 600;
+}
+
+.ROIPanel-totalRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  margin-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.78rem;
+  color: #fff;
+  font-weight: 700;
+}
+
+.ROIPanel-fundingList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ROIPanel-fundingRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+  font-size: 0.68rem;
+}
+
+.ROIPanel-fundingSource {
+  color: #ccc;
+  flex: 1;
+}
+
+.ROIPanel-fundingAmount {
+  font-weight: 700;
+}
+
+.ROIPanel-netCostRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  margin-top: 4px;
+  border-top: 2px solid var(--color-green-border-strong);
+  font-size: 0.8rem;
+  color: #fff;
+  font-weight: 700;
+}
+
+.ROIPanel-grantSection {
+  flex-shrink: 0;
+  padding: 12px 14px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ROIPanel-grantHint {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+.ROIPanel-grantBtn {
+  width: 100%;
+  padding: 8px;
+  background: linear-gradient(135deg, var(--color-blue-dark) 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.78rem;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.ROIPanel-empty {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 14px;
+  text-align: center;
+}
+
+.ROIPanel-emptyText {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.ROIPanel--inline {
+  position: static;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+}

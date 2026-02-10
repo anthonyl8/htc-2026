@@ -1,0 +1,3 @@
+/* Global styles — variables and shared panel styles */
+@import "./styles/variables.css";
+@import "./styles/panels.css";
